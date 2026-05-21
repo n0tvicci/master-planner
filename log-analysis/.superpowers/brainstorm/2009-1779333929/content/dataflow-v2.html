@@ -1,0 +1,128 @@
+<h2>Data Flow v2 — With Tool Use Loop</h2>
+<p class="subtitle">Updated to show iterative NinjaOne script execution driven by Claude's tool calls</p>
+
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+
+  <!-- Phase 1 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #1565c0;">
+    <div style="font-size:0.75em;font-weight:700;color:#4fc3f7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 1 — INCIDENT INITIATION (unchanged)</div>
+    <div style="font-size:0.85em;color:#90a4ae;padding-left:10px;">
+      IT Admin submits device + problem → API Gateway → Orchestrator Lambda → creates incident ID → NinjaOne triggered for <em>initial</em> log collection (optional) → SQS job enqueued → UI gets incident ID immediately
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #2e7d32;">
+    <div style="font-size:0.75em;font-weight:700;color:#a5d6a7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 2 — SESSION BOOTSTRAP</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">1</span>
+        <span>Worker Lambda reads SQS job → loads <strong>Script Library</strong> from DynamoDB (all available scripts + descriptions)</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">2</span>
+        <span>Queries <strong>Bedrock Knowledge Base</strong> with problem description → retrieves top-K similar past incidents + known fix docs</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">3</span>
+        <span>Builds first Converse API call:<br>
+          <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.9em;display:block;margin-top:4px;line-height:1.6;">
+            system: "You are an IT diagnostic AI. Analyze logs and investigate issues. Tools available: [list of scripts]. Always ask for more data before concluding."<br>
+            user: "Device: WIN-PC-0042. Problem: Adobe CC install failing 1603. Initial logs: [s3 contents]. Past similar incidents: [KB results]"<br>
+            tools: [ { name: "run_script", description: "Run a NinjaOne script on the device", input_schema: { script_name, device_id } } ]
+          </code>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 - Tool Use Loop -->
+  <div style="background:#1a0035;border:1px dashed #9c27b0;border-radius:8px;padding:14px;">
+    <div style="font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.1em;margin-bottom:10px;">🔄 PHASE 3 — TOOL USE LOOP (repeats until Claude issues final answer)</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:0.88em;color:#cfd8dc;">
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">A</span>
+        <span><strong>Claude responds with a tool call</strong> (not a final answer yet):<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.9em;display:block;margin-top:4px;">{ tool: "run_script", input: { script_name: "check_connectivity", device_id: "WIN-PC-0042" } }</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">B</span>
+        <span><strong>Worker Lambda intercepts tool call</strong> → looks up <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">ninja_script_id</code> in Script Library → calls NinjaOne API → waits for script completion → fetches output from S3</span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">C</span>
+        <span><strong>Tool result appended to conversation</strong> and sent back to Claude:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.9em;display:block;margin-top:4px;">{ tool_result: "DNS: OK, Gateway: OK, Port 443 to adobe.com: BLOCKED by firewall rule #47" }</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">D</span>
+        <span><strong>Claude may call another tool</strong> or issue its final answer. Loop repeats for each tool call. Conversation history accumulates in DynamoDB each round.</span>
+      </div>
+
+      <div style="margin-top:6px;padding:8px;background:#0d001a;border-radius:6px;font-size:0.84em;color:#b39ddb;">
+        <strong>Example multi-step investigation:</strong><br>
+        Turn 1: Claude calls <code>get_install_logs</code> → gets MSI error 1603<br>
+        Turn 2: Claude calls <code>check_connectivity</code> → finds port 443 blocked<br>
+        Turn 3: Claude calls <code>check_firewall_rules</code> → confirms rule blocking Adobe CDN<br>
+        Turn 4: Claude issues final answer with all evidence assembled
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #e65100;">
+    <div style="font-size:0.75em;font-weight:700;color:#ffccbc;letter-spacing:0.1em;margin-bottom:8px;">PHASE 4 — FINAL REPORT DELIVERY</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">4</span>
+        <span>Claude issues final structured response stored to DynamoDB + S3:<br>
+          <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.9em;display:block;margin-top:4px;line-height:1.8;">
+            ROOT CAUSE: Adobe CC installer cannot reach CDN (port 443 blocked)<br>
+            EVIDENCE: MSI log error 1603 + connectivity check (port 443 blocked by rule #47)<br>
+            KB MATCH: Similar incident INC-2025-0312 resolved by firewall rule exception<br>
+            RECOMMENDED STEPS: 1. Open firewall exception for Adobe CDN IPs  2. ...
+          </code>
+        </span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">5</span>
+        <span>UI notified → IT Admin reviews full report including which scripts were run and what they found</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">6</span>
+        <span><strong>IT Admin acts manually.</strong> Can ask follow-up questions in the same session. After resolution, can add fix to Knowledge Base.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:200px;padding:12px;background:#0d2137;border-left:3px solid #4fc3f7;border-radius:4px;font-size:0.85em;color:#b0c4d8;">
+    <strong>Scripts Claude can call (examples):</strong>
+    <ul style="margin:6px 0 0;padding-left:16px;line-height:1.9;">
+      <li>get_install_logs</li>
+      <li>get_windows_update_logs</li>
+      <li>check_connectivity</li>
+      <li>check_firewall_rules</li>
+      <li>check_disk_space</li>
+      <li>get_running_services</li>
+      <li>check_proxy_settings</li>
+      <li>get_event_viewer_errors</li>
+      <li><em>+ any new script you add to NinjaOne</em></li>
+    </ul>
+  </div>
+  <div style="flex:1;min-width:200px;padding:12px;background:#0d2137;border-left:3px solid #ffd54f;border-radius:4px;font-size:0.85em;color:#b0c4d8;">
+    <strong>Safety guardrails on tool use:</strong>
+    <ul style="margin:6px 0 0;padding-left:16px;line-height:1.9;">
+      <li>Scripts are <strong>read-only / diagnostic only</strong> — no remediation scripts in the library</li>
+      <li>Max script calls per session capped (e.g. 10) to prevent runaway loops</li>
+      <li>Each script call logged to DynamoDB with timestamp</li>
+      <li>IT Admin can see exactly which scripts ran and their raw output</li>
+    </ul>
+  </div>
+</div>

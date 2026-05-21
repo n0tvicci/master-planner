@@ -1,0 +1,142 @@
+<h2>System Architecture v3 — Bedrock Agents (Final)</h2>
+<p class="subtitle">AWS Bedrock Agents · Action Groups · Knowledge Base · NinjaOne Script-as-Tool · Human-in-the-loop</p>
+
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+
+  <!-- Row 1: Trigger -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#1a237e;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#90caf9;letter-spacing:0.05em;">TRIGGER<br>LAYER</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:100px;">
+        <div style="font-size:1.1em;">🖥️</div><strong>Web UI / CLI</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">Device name<br>+ problem description</span>
+      </div>
+      <div style="color:#4fc3f7;font-size:1.3em;">→</div>
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:100px;">
+        <div style="font-size:1.1em;">🌐</div><strong>API Gateway</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">POST /analyze<br>POST /followup/{id}</span>
+      </div>
+      <div style="color:#4fc3f7;font-size:1.3em;">→</div>
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:110px;">
+        <div style="font-size:1.1em;">⚡</div><strong>Orchestrator Lambda</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">Creates incident ID<br>Writes to DynamoDB<br>Enqueues SQS job</span>
+      </div>
+      <div style="color:#4fc3f7;font-size:1.3em;">→</div>
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:100px;">
+        <div style="font-size:1.1em;">📬</div><strong>SQS Queue</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">Async buffer<br>handles 1000+ devices</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:1.1em;color:#4fc3f7;margin:-6px 0;">↓ Worker Lambda polls SQS → calls InvokeAgent ↓</div>
+
+  <!-- Row 2: Bedrock Agent (core) -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#4a148c;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.05em;">BEDROCK<br>AGENT</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;">
+
+      <!-- Agent box -->
+      <div style="background:#1a0035;border:2px solid #7b1fa2;border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.1em;margin-bottom:8px;">🤖 AWS BEDROCK AGENT — Fully Managed Orchestration</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+          <div style="flex:1;min-width:160px;background:#2a0050;border-radius:6px;padding:8px 10px;font-size:0.82em;">
+            <strong style="color:#e040fb;">System Prompt</strong><br>
+            <span style="color:#ce93d8;font-size:0.88em;">IT diagnostic expert. Analyze logs and device state. Always investigate before concluding. Never recommend executing fixes — provide steps for human review only.</span>
+          </div>
+          <div style="flex:1;min-width:160px;background:#2a0050;border-radius:6px;padding:8px 10px;font-size:0.82em;">
+            <strong style="color:#e040fb;">Session Management</strong><br>
+            <span style="color:#ce93d8;font-size:0.88em;">Native — Bedrock Agents maintains conversation history per sessionId (incident_id). No DynamoDB session state needed.</span>
+          </div>
+          <div style="flex:1;min-width:160px;background:#2a0050;border-radius:6px;padding:8px 10px;font-size:0.82em;">
+            <strong style="color:#e040fb;">KB Integration</strong><br>
+            <span style="color:#ce93d8;font-size:0.88em;">Knowledge Base attached directly. Agent auto-queries it during reasoning — past incidents, known error codes, fix guides.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Group -->
+      <div style="background:#0a2010;border:1px dashed #2e7d32;border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:0.75em;font-weight:700;color:#a5d6a7;letter-spacing:0.1em;margin-bottom:8px;">⚙️ ACTION GROUP — run_ninja_script(script_name, device_id)</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:0.84em;">
+          <div style="background:#1b5e20;border-radius:6px;padding:8px 10px;text-align:center;min-width:110px;">
+            <strong>Action Group Lambda</strong><br>
+            <span style="font-size:0.78em;color:#a5d6a7;">1. Reads config.json from S3<br>2. Finds script entry<br>3. Builds POST body<br>4. Calls NinjaOne API</span>
+          </div>
+          <div style="color:#4fc3f7;font-size:1.2em;">→</div>
+          <div style="background:#1b5e20;border-radius:6px;padding:8px 10px;text-align:center;min-width:130px;">
+            <strong>S3 Config File</strong><br>
+            <span style="font-size:0.78em;color:#a5d6a7;">scripts.json<br>name → { type, id, uid,<br>parameters, runAs,<br>description }</span>
+          </div>
+          <div style="color:#4fc3f7;font-size:1.2em;">→</div>
+          <div style="background:#1b5e20;border-radius:6px;padding:8px 10px;text-align:center;min-width:130px;">
+            <strong>NinjaOne API</strong><br>
+            <span style="font-size:0.78em;color:#a5d6a7;">POST /v2/device/{id}<br>/script/run<br>body: { type, id, uid,<br>parameters, runAs }</span>
+          </div>
+          <div style="color:#4fc3f7;font-size:1.2em;">→</div>
+          <div style="background:#1b5e20;border-radius:6px;padding:8px 10px;text-align:center;min-width:110px;">
+            <strong>Device runs script</strong><br>
+            <span style="font-size:0.78em;color:#a5d6a7;">Output uploaded<br>to S3<br>logs/{device}/{incident}/</span>
+          </div>
+          <div style="color:#4fc3f7;font-size:1.2em;">→</div>
+          <div style="background:#1b5e20;border-radius:6px;padding:8px 10px;text-align:center;min-width:110px;">
+            <strong>Output returned<br>to Agent</strong><br>
+            <span style="font-size:0.78em;color:#a5d6a7;">Lambda fetches<br>from S3, returns<br>to Bedrock Agent</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storage row -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div style="background:#263238;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+          <div style="font-size:1.1em;">🪣</div><strong>S3 Bucket</strong><br>
+          <span style="font-size:0.78em;color:#b0bec5;">logs/ — raw device logs<br>scripts.json — config</span>
+        </div>
+        <div style="background:#263238;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+          <div style="font-size:1.1em;">🗄️</div><strong>DynamoDB</strong><br>
+          <span style="font-size:0.78em;color:#b0bec5;">Incident records only<br>(not session state)</span>
+        </div>
+        <div style="background:#263238;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:140px;">
+          <div style="font-size:1.1em;">📚</div><strong>Bedrock Knowledge Base</strong><br>
+          <span style="font-size:0.78em;color:#b0bec5;">Past incidents · Fix guides<br>Error code library<br>S3-backed + vector store</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:1.1em;color:#4fc3f7;margin:-6px 0;">↓ final analysis delivered · ↑ follow-up questions reuse same sessionId ↑</div>
+
+  <!-- Row 3: Output -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#b71c1c;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#ef9a9a;letter-spacing:0.05em;">OUTPUT<br>LAYER</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#c62828;border-radius:6px;padding:8px 12px;font-size:0.82em;min-width:150px;">
+        <div style="font-size:1.1em;">📋</div><strong>Analysis Report</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">• Root cause + reasoning<br>• Scripts run + findings<br>• KB matches cited<br>• Recommended steps</span>
+      </div>
+      <div style="color:#4fc3f7;font-size:1.3em;">→</div>
+      <div style="background:#c62828;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:110px;">
+        <div style="font-size:1.1em;">👤</div><strong>IT Admin</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Reviews · Decides<br>Acts manually<br>Asks follow-ups</span>
+      </div>
+      <div style="color:#4fc3f7;font-size:1.3em;">→</div>
+      <div style="background:#7f0000;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:130px;">
+        <div style="font-size:1.1em;">📚</div><strong>Feed back to KB</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Resolved fix → added<br>to Knowledge Base<br>System gets smarter</span>
+      </div>
+      <div style="background:#7f0000;border:1px solid #f44336;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        🚫 <strong>Scripts = diagnostic only</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Agent never fixes<br>Human has final say</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;padding:12px;background:#0d2137;border-left:3px solid #ffd54f;border-radius:4px;font-size:0.85em;color:#b0c4d8;line-height:1.8;">
+  <strong>What Bedrock Agents manages natively (you don't build these):</strong>
+  orchestration loop · tool call decisions · session/conversation history · Knowledge Base querying · retry logic<br>
+  <strong>What you own:</strong>
+  Action Group Lambda · scripts.json config in S3 · NinjaOne API integration · incident records in DynamoDB · Web UI
+</div>

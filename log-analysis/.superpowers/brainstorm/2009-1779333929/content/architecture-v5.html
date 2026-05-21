@@ -1,0 +1,242 @@
+<h2>System Architecture v5 — Post-Review Final</h2>
+<p class="subtitle">All review fixes applied: SQS VisibilityTimeout · DLQ Alarm · API Key auth · IN_PROGRESS status · scripts_run tracking · 120s poll cap · NinjaOne script contract · AOSS prereq</p>
+
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+
+  <!-- Row 1: Trigger -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#1a237e;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#90caf9;letter-spacing:0.05em;">TRIGGER<br>LAYER</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:100px;">
+        <div>🖥️</div><strong>Web UI / CLI</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">Device name<br>+ problem</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:110px;">
+        <div>🌐</div><strong>API Gateway</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">POST /analyze<br>POST /followup/{id}<br><strong style="color:#ffd54f;">API Key required</strong></span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        <div>⚡</div><strong>Orchestrator Lambda</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">Creates incident ID<br>→ DynamoDB <strong>PENDING</strong><br>→ SQS job</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#1565c0;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        <div>📬</div><strong>SQS Queue</strong><br>
+        <span style="font-size:0.78em;color:#90caf9;">Async buffer · spikes<br><strong style="color:#ffd54f;">VisibilityTimeout: 5400s</strong><br>DLQ on 3 retries</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DLQ monitoring callout -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#37474f;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#b0bec5;letter-spacing:0.05em;">DLQ<br>MONITOR</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#37474f;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        <div>☠️</div><strong>Dead Letter Queue</strong><br>
+        <span style="font-size:0.78em;color:#b0bec5;">Messages after 3 failed Worker invocations · 14-day retention</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#37474f;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:140px;">
+        <div>📊</div><strong>CloudWatch Alarm</strong><br>
+        <span style="font-size:0.78em;color:#b0bec5;">Fires when DLQ depth ≥ 1<br>→ SNS Topic<br>→ email / Slack alert</span>
+      </div>
+      <div style="color:#b0bec5;font-size:0.82em;padding:6px;">Incident stays PENDING in DynamoDB. IT Admin reviews DLQ + CloudWatch logs to diagnose root cause.</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:1em;color:#4fc3f7;margin:-4px 0;">↓ Worker Lambda picks up SQS → sets IN_PROGRESS → InvokeAgent ↓</div>
+
+  <!-- Row 2: Bedrock Agent -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#4a148c;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.05em;">BEDROCK<br>AGENT</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;">
+
+      <!-- Worker status note -->
+      <div style="background:#0d2837;border:1px solid #1565c0;border-radius:6px;padding:8px;margin-bottom:10px;font-size:0.82em;color:#90caf9;">
+        <strong>Worker Lambda</strong> — before calling InvokeAgent:
+        <span style="color:#ffd54f;margin-left:6px;">sets status → <strong>IN_PROGRESS</strong></span>
+        · On completion: <span style="color:#81c784;">COMPLETE</span> with full report · On exception: <span style="color:#ef9a9a;">FAILED</span> with error message stored in <code style="background:#1a1a2e;padding:1px 4px;">analysis_report</code>
+      </div>
+
+      <div style="background:#1a0035;border:2px solid #7b1fa2;border-radius:8px;padding:10px;margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:140px;background:#2a0050;border-radius:6px;padding:8px;font-size:0.82em;">
+          <strong style="color:#e040fb;">AWS Bedrock Agent</strong><br>
+          <span style="color:#ce93d8;font-size:0.85em;">Managed orchestration · Session state · KB auto-query · Tool call decisions · <strong style="color:#ffd54f;">Max 4 tool calls per session</strong></span>
+        </div>
+        <div style="flex:1;min-width:140px;background:#2a0050;border-radius:6px;padding:8px;font-size:0.82em;">
+          <strong style="color:#e040fb;">📚 Knowledge Base</strong><br>
+          <span style="color:#ce93d8;font-size:0.85em;">Attached directly · Past incidents · Known fixes · Error code library · S3-backed · AOSS vector store</span>
+        </div>
+      </div>
+
+      <!-- Action Group - full lifecycle -->
+      <div style="background:#0a2010;border:1px dashed #2e7d32;border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:0.75em;font-weight:700;color:#a5d6a7;letter-spacing:0.1em;margin-bottom:10px;">⚙️ ACTION GROUP — run_ninja_script(script_name, device_name, incident_id)</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:0.84em;">
+
+          <!-- Step 1: Device ID lookup -->
+          <div style="background:#1a2a1a;border-radius:6px;padding:10px;border-left:3px solid #4caf50;">
+            <div style="font-size:0.78em;font-weight:700;color:#81c784;margin-bottom:6px;">STEP 1 — DEVICE ID LOOKUP</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:#cfd8dc;">
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:120px;">
+                <strong>Action Group Lambda</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">receives device_name<br>"WIN-PC-0042"</span>
+              </div>
+              <div style="color:#4fc3f7;">→</div>
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:130px;">
+                <strong>DynamoDB<br>Device Cache</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">lookup by device_name<br>→ ninja_device_id</span>
+              </div>
+              <div style="color:#81c784;font-size:0.85em;">cache miss?</div>
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:130px;">
+                <strong>GET /v2/devices-details</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">fetch full list once<br>update cache<br>get ID</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Script execution -->
+          <div style="background:#1a2a1a;border-radius:6px;padding:10px;border-left:3px solid #4caf50;">
+            <div style="font-size:0.78em;font-weight:700;color:#81c784;margin-bottom:6px;">STEP 2 — SCRIPT EXECUTION + TRACKING</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:#cfd8dc;">
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:130px;">
+                <strong>Generate pre-signed<br>S3 PUT URL</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">output path:<br>logs/{device}/{incident}<br>/{script}/output.txt</span>
+              </div>
+              <div style="color:#4fc3f7;">→</div>
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:150px;">
+                <strong>Read scripts.json from S3</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">inject output_url<br>+ incident_id as params<br>→ POST to NinjaOne</span>
+              </div>
+              <div style="color:#4fc3f7;">→</div>
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:150px;">
+                <strong>append_script_run()</strong><br>
+                <span style="font-size:0.82em;color:#ffd54f;">DynamoDB list_append<br>scripts_run ← script_name<br>audit trail per incident</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Poll + read -->
+          <div style="background:#1a2a1a;border-radius:6px;padding:10px;border-left:3px solid #4caf50;">
+            <div style="font-size:0.78em;font-weight:700;color:#81c784;margin-bottom:6px;">STEP 3 — WAIT FOR COMPLETION + READ OUTPUT</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:#cfd8dc;">
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:160px;">
+                <strong>Poll NinjaOne job status</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">get_job_status → (status, message)<br>exponential backoff<br><strong style="color:#ffd54f;">max 120s (was 300s)</strong></span>
+              </div>
+              <div style="color:#4fc3f7;">→ SUCCESS →</div>
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:130px;">
+                <strong>Read from S3</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">fetch output.txt<br>from known path</span>
+              </div>
+              <div style="color:#4fc3f7;">→</div>
+              <div style="background:#1b5e20;border-radius:5px;padding:6px 10px;text-align:center;min-width:130px;">
+                <strong>Return to Agent</strong><br>
+                <span style="font-size:0.82em;color:#a5d6a7;">script output content<br>→ Bedrock Agent<br>continues reasoning</span>
+              </div>
+            </div>
+            <div style="margin-top:8px;font-size:0.8em;color:#ef9a9a;background:#2a0a0a;border-radius:4px;padding:6px;">
+              FAILED → returns <code style="background:#1a1a2e;padding:1px 4px;">"Script execution FAILED: {message}"</code> to Agent in single call (no double-fetch). Agent notes it and tries next script. · TIMEOUT → <code style="background:#1a1a2e;padding:1px 4px;">"timed out after 120s"</code> returned to Agent.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Storage row -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div style="background:#263238;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+          <div>🪣</div><strong>S3 Bucket</strong><br>
+          <span style="font-size:0.78em;color:#b0bec5;">scripts.json · KB docs<br>logs/{device}/{incident}<br>/{script}/output.txt</span>
+        </div>
+        <div style="background:#263238;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:150px;">
+          <div>🗄️</div><strong>DynamoDB</strong><br>
+          <span style="font-size:0.78em;color:#b0bec5;">Incident records<br><strong style="color:#ffd54f;">status: PENDING→IN_PROGRESS→COMPLETE/FAILED</strong><br>scripts_run: [] · Device cache</span>
+        </div>
+        <div style="background:#263238;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:130px;">
+          <div>📦</div><strong>OpenSearch Serverless</strong><br>
+          <span style="font-size:0.78em;color:#b0bec5;">Vector store for KB<br><strong style="color:#ffd54f;">pre-create collection<br>"log-analysis" before deploy</strong></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Device Cache Sync -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#37474f;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#b0bec5;letter-spacing:0.05em;">DEVICE<br>CACHE<br>SYNC</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#37474f;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        <div>⏰</div><strong>EventBridge</strong><br>
+        <span style="font-size:0.78em;color:#b0bec5;">Scheduled rule<br>every 6 hours</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#37474f;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        <div>⚡</div><strong>Sync Lambda</strong><br>
+        <span style="font-size:0.78em;color:#b0bec5;">GET /v2/devices-details<br>full device list</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#37474f;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:130px;">
+        <div>🗄️</div><strong>DynamoDB Device Cache</strong><br>
+        <span style="font-size:0.78em;color:#b0bec5;">upserts device_name<br>→ ninja_device_id<br>for all devices</span>
+      </div>
+      <div style="color:#b0bec5;font-size:0.82em;padding:6px;">Cache miss? Action Group Lambda falls back to live API call + updates cache entry.</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:1em;color:#4fc3f7;margin:-4px 0;">↓ analysis complete · follow-up via same sessionId ↓</div>
+
+  <!-- Output -->
+  <div style="display:flex;align-items:stretch;gap:12px;">
+    <div style="width:110px;min-width:110px;display:flex;align-items:center;justify-content:center;background:#b71c1c;border-radius:8px;padding:8px;text-align:center;font-size:0.75em;font-weight:700;color:#ef9a9a;letter-spacing:0.05em;">OUTPUT<br>LAYER</div>
+    <div style="flex:1;background:#0d2137;border-radius:8px;padding:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#c62828;border-radius:6px;padding:8px 12px;font-size:0.82em;min-width:160px;">
+        <div>📋</div><strong>Analysis Report</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Root cause · Evidence<br>Scripts run (from scripts_run list)<br>KB matches · Fix steps</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#c62828;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:110px;">
+        <div>👤</div><strong>IT Admin</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Reviews · Acts<br>Asks follow-ups</span>
+      </div>
+      <div style="color:#4fc3f7;">→</div>
+      <div style="background:#7f0000;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:120px;">
+        <div>📚</div><strong>Feed back to KB</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Resolved fix → S3 KB prefix<br>→ KB Ingestion Lambda<br>→ AOSS vector store</span>
+      </div>
+      <div style="background:#7f0000;border:1px solid #f44336;border-radius:6px;padding:8px 12px;font-size:0.82em;text-align:center;min-width:110px;">
+        🚫 <strong>Diagnostic only</strong><br>
+        <span style="font-size:0.78em;color:#ef9a9a;">Human executes fixes<br>AI never touches device</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:200px;padding:12px;background:#0d2137;border-left:3px solid #4caf50;border-radius:4px;font-size:0.84em;color:#b0c4d8;line-height:1.8;">
+    <strong>S3 output path convention:</strong><br>
+    <code style="background:#1a1a2e;display:block;padding:6px;border-radius:4px;margin-top:4px;">
+      logs/{ninja_device_id}/{incident_id}/{script_name}/output.txt
+    </code>
+    Lambda generates pre-signed PUT URL before firing the script. Script receives URL as parameter and uploads directly. Lambda reads from the known path — no guessing.
+  </div>
+  <div style="flex:1;min-width:200px;padding:12px;background:#0d2137;border-left:3px solid #ffd54f;border-radius:4px;font-size:0.84em;color:#b0c4d8;line-height:1.8;">
+    <strong>NinjaOne script contract (required):</strong><br>
+    <code style="background:#1a1a2e;display:block;padding:6px;border-radius:4px;margin-top:4px;font-size:0.88em;">
+      param([string]$output_url, [string]$incident_id)<br>
+      $output = "... diagnostics ..."<br>
+      $bytes = [Text.Encoding]::UTF8.GetBytes($output)<br>
+      Invoke-WebRequest -Uri $output_url -Method PUT -Body $bytes
+    </code>
+    Every script must follow this pattern. Without it, S3 stays empty and the poller times out.
+  </div>
+  <div style="flex:1;min-width:200px;padding:12px;background:#0d2137;border-left:3px solid #ef9a9a;border-radius:4px;font-size:0.84em;color:#b0c4d8;line-height:1.8;">
+    <strong>Job status polling:</strong><br>
+    <code style="background:#1a1a2e;display:block;padding:6px;border-radius:4px;margin-top:4px;">get_job_status() → (status, message)</code>
+    Returns tuple in one API call. FAILED branch uses the message directly — no second fetch. Poll timeout = <strong>120s max</strong> (exponential backoff). 4 scripts × 120s = 480s well within 900s Worker Lambda limit.
+  </div>
+</div>

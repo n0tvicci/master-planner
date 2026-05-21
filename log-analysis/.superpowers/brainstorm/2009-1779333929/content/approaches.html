@@ -1,0 +1,71 @@
+<h2>Three Architecture Approaches</h2>
+<p class="subtitle">Choose the foundation for your AI log analysis system</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Direct Lambda + Bedrock Invoke</h3>
+      <p><strong>One-shot only. No conversation.</strong></p>
+      <div style="font-size:0.85em;margin-top:8px;line-height:1.7;font-family:monospace;background:#1a1a2e;padding:10px;border-radius:6px;color:#a0c4ff;">
+        NinjaOne script → S3<br>
+        S3 event → SQS → Lambda<br>
+        Lambda fetches logs → builds prompt<br>
+        Bedrock Claude (InvokeModel API)<br>
+        Result → DynamoDB → API Gateway → You
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Simplest to build</li><li>Cheapest to run</li><li>Fast delivery</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>No follow-up questions</li><li>No conversation memory</li><li>One answer, take it or leave it</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Full Bedrock Agents</h3>
+      <p><strong>Agentic. Agent decides what to fetch and how.</strong></p>
+      <div style="font-size:0.85em;margin-top:8px;line-height:1.7;font-family:monospace;background:#1a1a2e;padding:10px;border-radius:6px;color:#a0c4ff;">
+        IT Admin → API Gateway → Bedrock Agent<br>
+        Agent has Action Groups:<br>
+        &nbsp;&nbsp;→ fetch_logs (Lambda → S3)<br>
+        &nbsp;&nbsp;→ search_knowledge_base<br>
+        Agent orchestrates multi-turn<br>
+        Native session memory built-in
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Fully conversational</li><li>Agent decides which logs to fetch</li><li>Knowledge base for known fixes</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Most expensive</li><li>Harder to control</li><li>Complex to set up correctly</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Bedrock Converse API + Session State ⭐ Recommended</h3>
+      <p><strong>One-shot primary analysis + optional follow-up conversation.</strong></p>
+      <div style="font-size:0.85em;margin-top:8px;line-height:1.7;font-family:monospace;background:#1a1a2e;padding:10px;border-radius:6px;color:#a0c4ff;">
+        NinjaOne → S3 (logs)<br>
+        API Gateway → Lambda → SQS<br>
+        Worker Lambda:<br>
+        &nbsp;&nbsp;→ fetches + chunks logs from S3<br>
+        &nbsp;&nbsp;→ Bedrock Converse API (multi-turn)<br>
+        &nbsp;&nbsp;→ stores session in DynamoDB<br>
+        Initial: full D-style analysis<br>
+        Follow-up: ask questions same session
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>One-shot + conversation hybrid</li><li>You control the orchestration</li><li>Cheaper than full Agents</li><li>Scales easily with SQS</li><li>Session history per incident</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Need to manage session state</li><li>More work than Option A</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:14px;background:#0d2137;border-left:3px solid #4fc3f7;border-radius:4px;font-size:0.9em;color:#b0c4d8;">
+  <strong>Why C is recommended:</strong> You need the one-shot primary analysis for speed (80% of cases), but the conversational follow-up for complex failures where the first answer isn't enough. Bedrock Converse API handles multi-turn natively without the overhead and cost of full Bedrock Agents. You keep full control of the orchestration logic, and SQS handles the scale of 1000+ devices cleanly.
+</div>

@@ -1,0 +1,115 @@
+<h2>Data Flow v3 — Bedrock Agents (Final)</h2>
+<p class="subtitle">Exact step-by-step flow using AWS Bedrock Agents with Action Groups and NinjaOne script execution</p>
+
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+
+  <!-- Phase 1 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #1565c0;">
+    <div style="font-size:0.75em;font-weight:700;color:#4fc3f7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 1 — INCIDENT INITIATION</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">1</span>
+        <span>IT Admin submits: <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">POST /analyze → { device: "WIN-PC-0042", problem: "Adobe CC installation keeps failing with error 1603" }</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">2</span>
+        <span>Orchestrator Lambda generates <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">incident_id</code>, writes <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">status: PENDING</code> to DynamoDB, enqueues job to SQS</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">3</span>
+        <span>UI immediately receives <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">{ incident_id, status: "PENDING" }</code> — no waiting. UI polls for updates.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #2e7d32;">
+    <div style="font-size:0.75em;font-weight:700;color:#a5d6a7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 2 — AGENT INVOCATION</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">4</span>
+        <span>Worker Lambda picks up SQS message → calls <strong>Bedrock Agents InvokeAgent</strong>:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">{ agentId, agentAliasId, sessionId: incident_id, inputText: "Device: WIN-PC-0042. Problem: Adobe CC error 1603." }</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">5</span>
+        <span>Bedrock Agent starts reasoning. It auto-queries attached <strong>Knowledge Base</strong> for similar past incidents and known error 1603 fixes. These are injected into its context automatically.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 - Agent Loop -->
+  <div style="background:#1a0035;border:1px dashed #9c27b0;border-radius:8px;padding:14px;">
+    <div style="font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.1em;margin-bottom:10px;">🔄 PHASE 3 — BEDROCK AGENT ORCHESTRATION LOOP (managed by AWS)</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:0.87em;color:#cfd8dc;">
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">A</span>
+        <span>Agent decides it needs installation logs first → invokes Action Group:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">run_ninja_script({ script_name: "get_install_logs", device_id: "WIN-PC-0042" })</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1b5e20;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">B</span>
+        <span><strong>Action Group Lambda executes:</strong><br>
+        1. Reads <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">scripts.json</code> from S3 → finds <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">get_install_logs</code> entry<br>
+        2. Fires: <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">POST /v2/device/WIN-PC-0042/script/run</code> with body:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">{ "type": "ACTION", "id": 1087, "uid": "def456uvw", "parameters": "", "runAs": "SYSTEM" }</code><br>
+        3. Waits for script completion → fetches output from S3 → returns to Agent</span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">C</span>
+        <span>Agent receives log output → finds MSI error 1603 + preceding network timeout → decides to investigate connectivity:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">run_ninja_script({ script_name: "check_connectivity", device_id: "WIN-PC-0042" })</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1b5e20;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">D</span>
+        <span>Action Group Lambda fires: <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">POST /v2/device/WIN-PC-0042/script/run → { "type": "ACTION", "id": 1042, "uid": "abc123xyz", "parameters": "", "runAs": "SYSTEM" }</code> → returns: <em>"Port 443 to adobe.com BLOCKED"</em></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">E</span>
+        <span>Agent has enough data → issues final structured response. <strong>Bedrock Agents saves full session to its managed store under <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">sessionId = incident_id</code></strong>.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #e65100;">
+    <div style="font-size:0.75em;font-weight:700;color:#ffccbc;letter-spacing:0.1em;margin-bottom:8px;">PHASE 4 — REPORT + FOLLOW-UP</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">6</span>
+        <span>Worker Lambda receives Agent response → stores final report in DynamoDB → updates status to <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">COMPLETE</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">7</span>
+        <span>UI displays full report to IT Admin: root cause, scripts run + findings, KB matches, numbered recommended steps</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">8</span>
+        <span><strong>Follow-up question</strong> — IT Admin types: <em>"Could it also be an SSL certificate issue?"</em><br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">POST /followup/{incident_id} → InvokeAgent({ sessionId: incident_id, inputText: "Could it also be an SSL cert issue?" })</code><br>
+        Agent has full prior context from its session store — no re-analysis needed, it continues the conversation.</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">9</span>
+        <span>IT Admin acts manually on fix steps. After resolution → optionally uploads fix summary to S3 → ingested into Knowledge Base for future incidents.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;padding:12px;background:#0d2137;border-left:3px solid #4fc3f7;border-radius:4px;font-size:0.85em;color:#b0c4d8;line-height:1.8;">
+  <strong>scripts.json in S3 — example entry shape:</strong><br>
+  <code style="background:#1a1a2e;display:block;padding:8px;border-radius:4px;margin-top:6px;line-height:1.8;">
+    { "name": "check_connectivity",<br>
+    &nbsp;&nbsp;"description": "Tests DNS, gateway ping, port 443/80 to common endpoints. Use for network-related install or update failures.",<br>
+    &nbsp;&nbsp;"ninja_body": { "type": "ACTION", "id": 1042, "uid": "abc123xyz", "parameters": "", "runAs": "SYSTEM" } }
+  </code>
+  Adding a new script = add one entry to scripts.json in S3. No Lambda redeployment. Agent picks it up on next invocation.
+</div>

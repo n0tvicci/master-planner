@@ -1,0 +1,109 @@
+<h2>Section 2 — Detailed Data Flow</h2>
+<p class="subtitle">Step-by-step from trigger to analysis result, including async handling and conversation loop</p>
+
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+
+  <!-- Phase 1 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #1565c0;">
+    <div style="font-size:0.75em;font-weight:700;color:#4fc3f7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 1 — INCIDENT INITIATION</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">1</span>
+        <span>IT Admin submits: <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">{ device: "WIN-PC-0042", problem: "Adobe CC installation keeps failing with error 1603" }</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">2</span>
+        <span>API Gateway validates + forwards to <strong>Orchestrator Lambda</strong></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">3</span>
+        <span>Lambda generates <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">incident_id = INC-20260521-WIN-PC-0042-001</code>, stores initial record in DynamoDB with status <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">PENDING</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">4</span>
+        <span>Lambda calls <strong>NinjaOne API</strong> → triggers diagnostic script execution on target device</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">5</span>
+        <span>Lambda returns <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">{ incident_id, status: "COLLECTING_LOGS" }</code> to UI immediately — no waiting</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #2e7d32;">
+    <div style="font-size:0.75em;font-weight:700;color:#a5d6a7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 2 — LOG COLLECTION (ASYNC)</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">6</span>
+        <span>NinjaOne script runs on device: collects Windows Event Viewer exports, MSI installer logs, Windows Update logs, application crash dumps as needed</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">7</span>
+        <span>Script uploads files to S3: <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">s3://org-log-analysis/logs/WIN-PC-0042/INC-20260521-001/system.evtx</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">8</span>
+        <span>S3 event notification (or NinjaOne webhook callback) triggers → <strong>SQS message</strong> enqueued: <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">{ incident_id, device, problem, s3_prefix }</code></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #6a1b9a;">
+    <div style="font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.1em;margin-bottom:8px;">PHASE 3 — AI ANALYSIS</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">9</span>
+        <span><strong>Worker Lambda</strong> picks up SQS message → fetches all log files from S3 → chunks large files (logs can be huge)</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">10</span>
+        <span>Lambda queries <strong>Bedrock Knowledge Base</strong> with problem description → retrieves top-K relevant documents (past incidents, known error codes, fix guides)</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">11</span>
+        <span>Lambda calls <strong>Bedrock Converse API</strong> with: system prompt + problem context + log content + KB results</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">12</span>
+        <span>Claude returns structured response: <strong>root cause → evidence from logs → KB matches → recommended steps (numbered)</strong></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">13</span>
+        <span>Lambda saves full conversation history + result to DynamoDB → updates incident status to <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">ANALYSIS_COMPLETE</code></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #e65100;">
+    <div style="font-size:0.75em;font-weight:700;color:#ffccbc;letter-spacing:0.1em;margin-bottom:8px;">PHASE 4 — HUMAN REVIEW + OPTIONAL FOLLOW-UP</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">14</span>
+        <span>UI polls for status or receives webhook → displays full analysis report to IT Admin</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">15</span>
+        <span><strong>[Optional]</strong> IT Admin types follow-up: <em>"What if it's a group policy conflict instead?"</em> → API Gateway → Lambda loads session from DynamoDB → Converse API continues same session → new answer appended</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">16</span>
+        <span><strong>IT Admin acts manually</strong> on recommended steps. After resolution, admin can mark incident resolved + optionally save the fix to the Knowledge Base for future use.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;padding:14px;background:#0d2137;border-left:3px solid #ffd54f;border-radius:4px;font-size:0.88em;color:#b0c4d8;">
+  <strong>Key design decisions:</strong>
+  <ul style="margin:8px 0 0 0;padding-left:18px;line-height:1.8;">
+    <li><strong>Async by default</strong> — UI gets an incident ID immediately; analysis runs in the background. No timeout risk.</li>
+    <li><strong>SQS as buffer</strong> — during Patch Tuesday spikes, jobs queue up cleanly. Worker Lambda scales out independently.</li>
+    <li><strong>KB queried before Bedrock</strong> — similar past incidents + known fix docs are injected into the prompt, grounding the AI in your org's actual history.</li>
+    <li><strong>Session in DynamoDB</strong> — each incident has a full conversation thread. Follow-up questions have full prior context.</li>
+    <li><strong>Human closes the loop</strong> — resolved fixes can be fed back into the KB, making the system smarter over time.</li>
+  </ul>
+</div>

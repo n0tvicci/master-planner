@@ -1,0 +1,164 @@
+<h2>Data Flow v4 — Post-Review Final</h2>
+<p class="subtitle">All review fixes applied: IN_PROGRESS status · scripts_run tracking · 120s poll cap · FAILED error storage · API Key auth · DLQ Alarm · NinjaOne script contract</p>
+
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+
+  <!-- Phase 1 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #1565c0;">
+    <div style="font-size:0.75em;font-weight:700;color:#4fc3f7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 1 — INCIDENT INITIATION</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">1</span>
+        <span>IT Admin submits (API Key header required): <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">POST /analyze → { device_name: "WIN-PC-0042", problem: "Adobe CC installation keeps failing with error 1603" }</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">2</span>
+        <span>Orchestrator Lambda generates <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">incident_id</code>, writes <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">status: PENDING, scripts_run: []</code> to DynamoDB, enqueues job to SQS <strong style="color:#ffd54f;">(VisibilityTimeout: 5400s)</strong></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1565c0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">3</span>
+        <span>UI immediately receives <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">{ incident_id, status: "PENDING" }</code> — no waiting. UI polls DynamoDB for status updates.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #2e7d32;">
+    <div style="font-size:0.75em;font-weight:700;color:#a5d6a7;letter-spacing:0.1em;margin-bottom:8px;">PHASE 2 — AGENT INVOCATION</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">4</span>
+        <span>Worker Lambda picks up SQS message →
+        <strong style="color:#ffd54f;">sets status: IN_PROGRESS in DynamoDB</strong> →
+        calls <strong>Bedrock Agents InvokeAgent</strong>:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">{ agentId, agentAliasId, sessionId: incident_id, inputText: "Device: WIN-PC-0042. Problem: Adobe CC error 1603." }</code></span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#2e7d32;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">5</span>
+        <span>Bedrock Agent starts reasoning. Auto-queries attached <strong>Knowledge Base</strong> for similar past incidents and known error 1603 fixes. These are injected into context automatically. Agent may run <strong style="color:#ffd54f;">at most 4 diagnostic scripts</strong>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 - Agent Loop -->
+  <div style="background:#1a0035;border:1px dashed #9c27b0;border-radius:8px;padding:14px;">
+    <div style="font-size:0.75em;font-weight:700;color:#ce93d8;letter-spacing:0.1em;margin-bottom:10px;">🔄 PHASE 3 — BEDROCK AGENT ORCHESTRATION LOOP (managed by AWS, max 4 tool calls)</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:0.87em;color:#cfd8dc;">
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">A</span>
+        <span>Agent decides it needs installation logs first → invokes Action Group:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">run_ninja_script({ script_name: "get_install_logs", device_name: "WIN-PC-0042", incident_id: "INC-..." })</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1b5e20;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">B</span>
+        <span><strong>Action Group Lambda executes:</strong><br>
+        1. Lookup device ID from DynamoDB cache (or live NinjaOne API fallback)<br>
+        2. Generate pre-signed S3 PUT URL for output path<br>
+        3. Read <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">scripts.json</code> from S3 → inject <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">output_url</code> + <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">incident_id</code> as params<br>
+        4. <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">POST /v2/device/{id}/script/run</code> → receives <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">job_id</code><br>
+        5. <strong style="color:#ffd54f;">append_script_run(incident_id, "get_install_logs") → DynamoDB scripts_run list</strong><br>
+        6. Poll <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">get_job_status(job_id) → (status, message)</code> with exponential backoff · <strong style="color:#ffd54f;">max 120s</strong><br>
+        7. On SUCCESS → read output.txt from S3 → return to Agent<br>
+        &nbsp;&nbsp;&nbsp;On FAILED → return <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">"FAILED: {message}"</code> (single API call — no double fetch)<br>
+        &nbsp;&nbsp;&nbsp;On timeout → return <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">"timed out after 120s"</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">C</span>
+        <span>Agent receives log output → finds MSI error 1603 + preceding network timeout → decides to investigate connectivity:<br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">run_ninja_script({ script_name: "check_connectivity", device_name: "WIN-PC-0042", incident_id: "INC-..." })</code></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#1b5e20;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">D</span>
+        <span>Action Group Lambda repeats steps B above → <strong style="color:#ffd54f;">scripts_run now ["get_install_logs", "check_connectivity"]</strong> →
+        returns: <em>"Port 443 to adobe.com BLOCKED"</em></span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#6a1b9a;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">E</span>
+        <span>Agent has enough data (used 2 of 4 allowed tool calls) → issues final structured response. <strong>Bedrock Agents saves full session under <code style="background:#1a1a2e;padding:2px 5px;border-radius:4px;">sessionId = incident_id</code></strong>.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Phase 4 -->
+  <div style="background:#0d2137;border-radius:8px;padding:14px;border-left:4px solid #e65100;">
+    <div style="font-size:0.75em;font-weight:700;color:#ffccbc;letter-spacing:0.1em;margin-bottom:8px;">PHASE 4 — REPORT + FOLLOW-UP</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">6</span>
+        <span>Worker Lambda receives Agent response stream → stores final report in DynamoDB → updates <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">status: COMPLETE</code>.<br>
+        <strong style="color:#ef9a9a;">On exception</strong>: sets <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">status: FAILED</code> with <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">analysis_report: "Analysis failed: {error}"</code> — IT Admin sees the error, not a blank record.</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">7</span>
+        <span>UI displays full report to IT Admin: root cause, evidence, scripts run (from <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">scripts_run</code> list), KB matches, numbered recommended steps.</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">8</span>
+        <span><strong>Follow-up question</strong> — IT Admin types: <em>"Could it also be an SSL certificate issue?"</em><br>
+        <code style="background:#1a1a2e;padding:4px 8px;border-radius:4px;font-size:0.88em;display:block;margin-top:4px;">POST /followup/{incident_id} → InvokeAgent({ sessionId: incident_id, inputText: "Could it also be an SSL cert issue?" })</code><br>
+        Agent has full prior context from its session store — no re-analysis needed, it continues the conversation.</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#e65100;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">9</span>
+        <span>IT Admin acts manually on fix steps. After resolution → uploads fix summary to <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">s3://org-log-analysis/knowledge-base/incidents/</code> → S3 event triggers KB Ingestion Lambda → AOSS vector store updated → future analyses benefit.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DLQ path -->
+  <div style="background:#1a0a0a;border-radius:8px;padding:14px;border-left:4px solid #c62828;">
+    <div style="font-size:0.75em;font-weight:700;color:#ef9a9a;letter-spacing:0.1em;margin-bottom:8px;">⚠️ FAILURE PATH — SQS DLQ + MONITORING</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.87em;color:#cfd8dc;">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#c62828;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">F1</span>
+        <span>Worker Lambda crashes 3 times on same message → SQS moves message to <strong>Dead Letter Queue</strong>. Incident stays <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">PENDING</code> or <code style="background:#1a1a2e;padding:2px 6px;border-radius:4px;">IN_PROGRESS</code> in DynamoDB.</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#c62828;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">F2</span>
+        <span><strong>CloudWatch Alarm</strong> fires within 5 minutes (DLQ depth ≥ 1) → <strong>SNS Topic</strong> → email / Slack alert to on-call IT Admin for manual review.</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="background:#c62828;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:0.85em;">F3</span>
+        <span>SQS VisibilityTimeout = <strong>5400s</strong> (6× Lambda timeout of 900s) — ensures a running Worker Lambda always finishes before SQS can re-deliver, preventing duplicate incident processing.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:220px;padding:12px;background:#0d2137;border-left:3px solid #4fc3f7;border-radius:4px;font-size:0.84em;color:#b0c4d8;line-height:1.8;">
+    <strong>Incident status lifecycle:</strong><br>
+    <code style="background:#1a1a2e;display:block;padding:6px;border-radius:4px;margin-top:4px;">
+      PENDING → IN_PROGRESS → COMPLETE<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↘ FAILED (with error in analysis_report)
+    </code>
+    UI can show meaningful state at every stage — no ambiguous "stuck on PENDING" when analysis is actively running.
+  </div>
+  <div style="flex:1;min-width:220px;padding:12px;background:#0d2137;border-left:3px solid #ffd54f;border-radius:4px;font-size:0.84em;color:#b0c4d8;line-height:1.8;">
+    <strong>NinjaOne script contract (required):</strong><br>
+    <code style="background:#1a1a2e;display:block;padding:6px;border-radius:4px;margin-top:4px;font-size:0.88em;">
+      param([string]$output_url, [string]$incident_id)<br>
+      $output = "... run diagnostics here ..."<br>
+      $bytes = [Text.Encoding]::UTF8.GetBytes($output)<br>
+      Invoke-WebRequest -Uri $output_url -Method PUT -Body $bytes
+    </code>
+    Scripts that don't upload to S3 via the presigned URL will produce empty output → poller times out → Agent gets "timed out after 120s" instead of real data.
+  </div>
+  <div style="flex:1;min-width:220px;padding:12px;background:#0d2137;border-left:3px solid #4caf50;border-radius:4px;font-size:0.84em;color:#b0c4d8;line-height:1.8;">
+    <strong>Timing budget (worst case):</strong><br>
+    <code style="background:#1a1a2e;display:block;padding:6px;border-radius:4px;margin-top:4px;">
+      4 scripts × 120s poll = 480s<br>
+      + Agent reasoning overhead ≈ 60s<br>
+      + Bedrock invocation overhead ≈ 30s<br>
+      Total ≈ 570s &lt;&lt; 900s Lambda limit
+    </code>
+    Comfortable headroom. SQS VisibilityTimeout 5400s means no re-delivery before Lambda finishes.
+  </div>
+</div>
