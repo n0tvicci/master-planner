@@ -36,6 +36,8 @@ A two-phase local automation pipeline that takes a topic from queue to published
 **Flags:**
 - `--topics-only` — generate and queue topics without running production pipeline
 - `--job <id>` — resume a specific job from its last checkpoint
+- `--revise` — re-run `generate_script.py` for the current job with the failed script + compliance notes appended as context, then re-check compliance automatically
+- `--voice <id>` — override the `ELEVENLABS_VOICE_ID` in `.env` for this job only (used for A/B voice testing)
 
 ### Steps
 
@@ -45,13 +47,14 @@ On start, `pipeline.py` checks `topics/queue.json` for the oldest entry with `st
 |---|---|---|---|
 | — | **Auto-check queue on start. If no approved topic: runs `generate_topics.py`, exits. User sets status → `"approved"` and re-runs.** | | |
 | 2 | `generate_script.py` | Claude API | `scripts/<job-id>/script.json` — full script, scores, footage queries, overlay keywords |
-| 3 | `check_compliance.py` | none | PASS or halt with revision instructions (originality ≥7, advertiser-friendly ≥8) |
-| 4 | `generate_voiceover.py` | ElevenLabs | `voiceover/<job-id>/voiceover.mp3` |
+| 3 | `check_compliance.py` | none | PASS or halt with revision instructions (originality ≥7, advertiser-friendly ≥8). Re-run with `--revise` to auto-loop back to `generate_script.py` with revision context. |
+| 4 | `generate_voiceover.py` | ElevenLabs | `voiceover/<job-id>/voiceover.mp3`. Uses `--voice` override if provided, else `ELEVENLABS_VOICE_ID` from `.env`. |
+| 4b | `select_music.py` | none | Reads mood recommendation from `script.json`, picks a matching track from `music/` library → `assets/<job-id>/music.mp3` |
 | 5 | `search_footage.py` | Pexels + Pixabay | `footage/<job-id>/` — clips downloaded concurrently per sentence |
 | 6 | `clear_footage.py` | ffmpeg (local) | Audio stripped from every clip + `compliance-logs/<job-id>/clearance.json` |
 | 7 | `check_footage_gaps.py` | none | `assets/<job-id>/footage-gaps.md` — Runway ML prompts for missing clips |
 | — | **PAUSE (if gaps): user generates clips in Runway ML, drops into `footage/<job-id>/gaps/`, re-runs pipeline.py** | | |
-| 8 | `package_assets.py` | none | Numbered asset bundle in `assets/<job-id>/` + edit checklist printed to terminal |
+| 8 | `package_assets.py` | none | Numbered asset bundle in `assets/<job-id>/` + edit checklist printed to terminal. Includes reminder: "First clip first frame must show the object in clear focus — this becomes the thumbnail." |
 
 ### Job ID format
 
@@ -135,6 +138,7 @@ yt-shorts/
 │   ├── search_footage.py
 │   ├── clear_footage.py
 │   ├── check_footage_gaps.py
+│   ├── select_music.py
 │   ├── package_assets.py
 │   ├── pre_upload_gate.py
 │   ├── generate_metadata.py
@@ -149,11 +153,17 @@ yt-shorts/
 ├── footage/<job-id>/
 │   ├── clip_01.mp4          ← audio-stripped stock
 │   └── gaps/                ← drop Runway clips here
+├── music/                       ← royalty-free tracks, manually curated
+│   ├── tense/
+│   ├── suspenseful/
+│   └── dramatic/
 ├── assets/<job-id>/
 │   ├── 01_clip.mp4          ← numbered for CapCut order
 │   ├── voiceover.mp3
+│   ├── music.mp3            ← selected by select_music.py
 │   ├── script.txt
-│   ├── overlays.txt         ← keyword overlay list
+│   ├── overlays.txt         ← keyword overlays with approximate timestamps
+│   │                           e.g. "[0:02] WHY MODERN / [0:08] MOST PEOPLE"
 │   └── footage-gaps.md      ← Runway ML prompts (empty = no gaps)
 ├── output/<job-id>/final.mp4
 ├── metadata/<job-id>/metadata.json
@@ -191,6 +201,11 @@ Google OAuth for YouTube: `credentials.json` + `token.json` in project root (git
 | No topic buffer | Weekly `--topics-only` batch + queue approval | Never start a day without an approved topic ready |
 | No dry-run mode | `publish.py --dry-run` | Preview metadata before committing to upload |
 | No job tracking | Job ID system | All assets stay grouped; publish.py knows exactly what to upload |
+| Background music is a manual step | `select_music.py` picks from local `music/` library by mood | Music is in the asset bundle before CapCut, no hunting for a track |
+| Compliance halt leaves user stuck | `--revise` flag re-runs script generation with revision context | One command to retry instead of manually editing JSON |
+| Single hardcoded ElevenLabs voice | `--voice <id>` flag per job | A/B test voices without touching `.env` |
+| Overlay keywords have no timing | Timestamps generated from script word count at 145 WPM | Cuts CapCut overlay placement from guesswork to copy-paste |
+| First-frame thumbnail unspecified | `package_assets.py` prints reminder in edit checklist | Prevents black or wrong-frame thumbnails |
 
 ---
 
