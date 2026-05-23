@@ -39,10 +39,11 @@ A two-phase local automation pipeline that takes a topic from queue to published
 
 ### Steps
 
+On start, `pipeline.py` checks `topics/queue.json` for the oldest entry with `status: "approved"` (FIFO). If none exists, it runs `generate_topics.py` automatically, prints the list, and exits with instructions to approve a topic before re-running.
+
 | # | Tool Script | API | Output |
 |---|---|---|---|
-| 1 | `generate_topics.py` | Claude API | 20 topics appended to `topics/queue.json` |
-| — | **PAUSE: user sets status → `"approved"` in queue.json, re-runs pipeline.py** | | |
+| — | **Auto-check queue on start. If no approved topic: runs `generate_topics.py`, exits. User sets status → `"approved"` and re-runs.** | | |
 | 2 | `generate_script.py` | Claude API | `scripts/<job-id>/script.json` — full script, scores, footage queries, overlay keywords |
 | 3 | `check_compliance.py` | none | PASS or halt with revision instructions (originality ≥7, advertiser-friendly ≥8) |
 | 4 | `generate_voiceover.py` | ElevenLabs | `voiceover/<job-id>/voiceover.mp3` |
