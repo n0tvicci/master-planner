@@ -1,6 +1,9 @@
 import json
+import os
+import sys
 import pytest
 from pathlib import Path
+from unittest.mock import patch
 
 
 @pytest.fixture
@@ -9,7 +12,25 @@ def project_root(tmp_path):
               "music/tense", "music/dramatic", "music/suspenseful",
               "compliance-logs", "metadata", "output"]:
         (tmp_path / d).mkdir(parents=True, exist_ok=True)
-    return tmp_path
+    # Inject project root via env var so pipeline.py reads the right path even
+    # after importlib.reload() (which re-evaluates PROJECT_ROOT at module level).
+    old_val = os.environ.get("PIPELINE_PROJECT_ROOT")
+    os.environ["PIPELINE_PROJECT_ROOT"] = str(tmp_path)
+    # Also patch the attribute on any already-imported pipeline module.
+    root_str = str(Path(__file__).parent.parent)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    try:
+        import pipeline
+        with patch.object(pipeline, "PROJECT_ROOT", tmp_path):
+            yield tmp_path
+    except ImportError:
+        yield tmp_path
+    finally:
+        if old_val is None:
+            os.environ.pop("PIPELINE_PROJECT_ROOT", None)
+        else:
+            os.environ["PIPELINE_PROJECT_ROOT"] = old_val
 
 
 @pytest.fixture
