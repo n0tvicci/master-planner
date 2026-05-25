@@ -178,6 +178,15 @@ def main(project_root: Path | None = None) -> None:
         revision_context = state.get("revision_notes") if args.revise else None
         generate_script.run(job_id, topic, config, project_root, revision_context)
         state = mark_complete("generate_script", state, project_root)
+        scripts_dir = project_root / "scripts" / job_id
+        script_path = scripts_dir / "script.json"
+        if script_path.exists():
+            with open(script_path) as f:
+                script_data = json.load(f)
+            if script_data.get("status") == "TOPIC_REJECTED":
+                print(f"Topic rejected during script generation: {script_data.get('reason', '')}")
+                print("Run pipeline.py --topics-only to queue a new topic.")
+                sys.exit(0)
     else:
         print("Script: already done")
 
@@ -295,7 +304,11 @@ def main(project_root: Path | None = None) -> None:
         print("Packaging assets...")
         package_assets.run(job_id, project_root)
         state = mark_complete("package_assets", state, project_root)
-        _set_topic_status(state["topic_id"], "used", project_root)
+        topic_id = state.get("topic_id")
+        if topic_id:
+            _set_topic_status(topic_id, "used", project_root)
+        else:
+            print("Warning: topic_id not found in state, skipping topic status update")
     else:
         print(f"Assets already packaged -- open: assets/{job_id}/")
         print(f"   Next: python publish.py --job {job_id}")

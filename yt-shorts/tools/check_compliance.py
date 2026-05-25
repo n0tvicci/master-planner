@@ -11,14 +11,21 @@ def run(job_id: str, project_root: Path) -> dict:
     except (json.JSONDecodeError, OSError) as e:
         raise RuntimeError(f"Could not read script for job {job_id}: {e}") from e
 
+    # Short-circuit if topic was rejected during script generation
+    if script.get("status") == "TOPIC_REJECTED":
+        return {"status": "REVISION_REQUIRED", "notes": f"Topic rejected during script generation: {script.get('reason', 'no reason given')}"}
+
     scores = script.get("scores", {})
     compliance = script.get("compliance", {})
 
+    originality = scores.get("originality", 0)
+    advertiser_friendliness = scores.get("advertiser_friendliness", 0)
+
     failures = []
-    if scores["originality"] < 7:
-        failures.append(f"Originality {scores['originality']}/10 (minimum 7)")
-    if scores["advertiser_friendliness"] < 8:
-        failures.append(f"Advertiser-friendliness {scores['advertiser_friendliness']}/10 (minimum 8)")
+    if originality < 7:
+        failures.append(f"Originality {originality}/10 (minimum 7)")
+    if advertiser_friendliness < 8:
+        failures.append(f"Advertiser-friendliness {advertiser_friendliness}/10 (minimum 8)")
     if compliance.get("sensitive_content") == "FLAG":
         failures.append("Sensitive content flagged")
 
@@ -37,9 +44,9 @@ def run(job_id: str, project_root: Path) -> dict:
 
     print(
         f"✅ Compliance PASS — "
-        f"Originality: {scores['originality']}/10, "
-        f"Advertiser: {scores['advertiser_friendliness']}/10, "
-        f"US Resonance: {scores['us_resonance']}/10"
+        f"Originality: {originality}/10, "
+        f"Advertiser: {advertiser_friendliness}/10, "
+        f"US Resonance: {scores.get('us_resonance', 0)}/10"
     )
     return {"status": "PASS"}
 

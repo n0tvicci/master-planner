@@ -11,6 +11,7 @@ def load_config() -> dict:
         "ELEVENLABS_VOICE_ID",
         "PEXELS_API_KEY",
         "PIXABAY_API_KEY",
+        "RUNWAYML_API_SECRET",
     ]
     missing = [k for k in required if not os.environ.get(k)]
     if missing:

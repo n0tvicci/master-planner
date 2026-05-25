@@ -72,7 +72,10 @@ def run(job_id: str, project_root: Path) -> Path:
             print("⚠️  Thumbnail extraction failed — save first frame of clip 01 manually as thumbnail.jpg")
 
     # Copy voiceover
-    shutil.copy2(voiceover_src, out_dir / "voiceover.mp3")
+    if voiceover_src.exists():
+        shutil.copy2(voiceover_src, out_dir / "voiceover.mp3")
+    else:
+        print(f"Warning: voiceover not found at {voiceover_src}, skipping")
 
     # script.txt — timestamped lines for reference while editing
     script_lines = [f"=== {job_id} ===\n"]
