@@ -35,7 +35,13 @@ def run(
     Returns:
         Path to generated MP3 file
     """
-    script = json.loads((project_root / "scripts" / job_id / "script.json").read_text())
+    script_file = project_root / "scripts" / job_id / "script.json"
+    if not script_file.exists():
+        raise FileNotFoundError(f"Script not found: {script_file}. Run generate_script first.")
+    try:
+        script = json.loads(script_file.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        raise RuntimeError(f"Could not read script for job {job_id}: {e}") from e
     full_text = " ".join(s["text"] for s in script["sentences"])
 
     vid = voice_id or config["elevenlabs_voice_id"]
