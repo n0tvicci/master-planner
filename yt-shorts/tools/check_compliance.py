@@ -3,9 +3,16 @@ from pathlib import Path
 
 
 def run(job_id: str, project_root: Path) -> dict:
-    script = json.loads((project_root / "scripts" / job_id / "script.json").read_text())
-    scores = script["scores"]
-    compliance = script["compliance"]
+    script_file = project_root / "scripts" / job_id / "script.json"
+    if not script_file.exists():
+        raise FileNotFoundError(f"Script not found: {script_file}. Run generate_script first.")
+    try:
+        script = json.loads(script_file.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        raise RuntimeError(f"Could not read script for job {job_id}: {e}") from e
+
+    scores = script.get("scores", {})
+    compliance = script.get("compliance", {})
 
     failures = []
     if scores["originality"] < 7:
