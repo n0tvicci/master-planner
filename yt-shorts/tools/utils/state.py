@@ -5,7 +5,10 @@ from pathlib import Path
 def load_state(job_id: str, project_root: Path) -> dict:
     state_file = project_root / ".tmp" / job_id / "state.json"
     if state_file.exists():
-        return json.loads(state_file.read_text())
+        try:
+            return json.loads(state_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            return {"job_id": job_id, "completed_steps": []}
     return {"job_id": job_id, "completed_steps": []}
 
 
@@ -20,6 +23,8 @@ def is_complete(step: str, state: dict) -> bool:
 
 
 def mark_complete(step: str, state: dict, project_root: Path) -> dict:
-    state.setdefault("completed_steps", []).append(step)
+    steps = state.setdefault("completed_steps", [])
+    if step not in steps:
+        steps.append(step)
     save_state(state, project_root)
     return state
