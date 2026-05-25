@@ -81,7 +81,15 @@ def run(config: dict, project_root: Path | None = None) -> list[dict]:
         system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user_content}],
     )
-    topics = json.loads(response.content[0].text)
+    if not response.content:
+        raise RuntimeError("Claude API returned empty response content")
+    try:
+        topics = json.loads(response.content[0].text)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"Claude returned non-JSON response: {e}\n"
+            f"Raw response: {response.content[0].text[:200]}"
+        ) from e
     # Only return Tier 1 and Tier 2 topics
     return [t for t in topics if t.get("tier") in ("1", "2", 1, 2)]
 
@@ -89,7 +97,13 @@ def run(config: dict, project_root: Path | None = None) -> list[dict]:
 def append_to_queue(topics: list[dict], project_root: Path) -> None:
     queue_file = project_root / "topics" / "queue.json"
     queue_file.parent.mkdir(exist_ok=True)
-    existing = json.loads(queue_file.read_text()) if queue_file.exists() else []
+    if queue_file.exists():
+        try:
+            existing = json.loads(queue_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            existing = []
+    else:
+        existing = []
     now = datetime.now(timezone.utc).isoformat()
     for topic in topics:
         topic["id"] = str(uuid.uuid4())[:8]
