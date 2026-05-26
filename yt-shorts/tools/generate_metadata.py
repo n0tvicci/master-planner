@@ -60,6 +60,5 @@ if __name__ == "__main__":
     parser.add_argument("--job", required=True)
     args = parser.parse_args()
     cfg = load_config()
-    import pathlib
-    result = run(args.job, cfg, pathlib.Path(__file__).parent.parent)
+    result = run(args.job, cfg, Path(__file__).parent.parent)
     print(json.dumps(result, indent=2))
