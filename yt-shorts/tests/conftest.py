@@ -12,25 +12,35 @@ def project_root(tmp_path):
               "music/tense", "music/dramatic", "music/suspenseful",
               "compliance-logs", "metadata", "output"]:
         (tmp_path / d).mkdir(parents=True, exist_ok=True)
-    # Inject project root via env var so pipeline.py reads the right path even
-    # after importlib.reload() (which re-evaluates PROJECT_ROOT at module level).
-    old_val = os.environ.get("PIPELINE_PROJECT_ROOT")
-    os.environ["PIPELINE_PROJECT_ROOT"] = str(tmp_path)
-    # Also patch the attribute on any already-imported pipeline module.
+
+    saved_env = {}
+    for key in ("PIPELINE_PROJECT_ROOT", "PUBLISH_PROJECT_ROOT"):
+        saved_env[key] = os.environ.get(key)
+        os.environ[key] = str(tmp_path)
+
     root_str = str(Path(__file__).parent.parent)
     if root_str not in sys.path:
         sys.path.insert(0, root_str)
-    try:
-        import pipeline
-        with patch.object(pipeline, "PROJECT_ROOT", tmp_path):
-            yield tmp_path
-    except ImportError:
-        yield tmp_path
-    finally:
-        if old_val is None:
-            os.environ.pop("PIPELINE_PROJECT_ROOT", None)
+
+    active_patches = []
+    for module_name in ("pipeline", "publish"):
+        try:
+            mod = __import__(module_name)
+            p = patch.object(mod, "PROJECT_ROOT", tmp_path)
+            p.start()
+            active_patches.append(p)
+        except (ImportError, AttributeError):
+            pass
+
+    yield tmp_path
+
+    for p in active_patches:
+        p.stop()
+    for key, val in saved_env.items():
+        if val is None:
+            os.environ.pop(key, None)
         else:
-            os.environ["PIPELINE_PROJECT_ROOT"] = old_val
+            os.environ[key] = val
 
 
 @pytest.fixture
@@ -41,6 +51,7 @@ def config():
         "elevenlabs_voice_id": "test-voice-id",
         "pexels_api_key": "test-key",
         "pixabay_api_key": "test-key",
+        "runwayml_api_secret": "test-key",
     }
 
 
@@ -136,3 +147,22 @@ def sample_script(project_root, sample_topic):
     script_dir.mkdir(parents=True)
     (script_dir / "script.json").write_text(json.dumps(script))
     return script
+
+
+@pytest.fixture
+def sample_metadata():
+    return {
+        "title": "Why real snipers never use laser sights",
+        "description": (
+            "Laser sights reveal your position to enemy night vision. "
+            "Real military snipers rely on scope magnification and iron sights. "
+            "The laser sight is a Hollywood invention — deadly in movies, fatal in combat. "
+            "Follow for more military history myths debunked."
+        ),
+        "tags": [
+            "military history", "snipers", "weapons facts", "laser sights",
+            "combat tactics", "did you know", "military myths", "special forces",
+            "rifle", "historical weapons",
+        ],
+        "pinned_comment": "Would you risk it with a laser sight in real combat? Drop your answer below.",
+    }
