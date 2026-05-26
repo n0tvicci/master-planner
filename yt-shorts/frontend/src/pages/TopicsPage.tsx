@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
 import AddIcon from '@mui/icons-material/Add'
 import TopicCard from '../components/TopicCard'
 import { topicsApi } from '../api/topics'
@@ -14,6 +15,9 @@ export default function TopicsPage() {
   const [queue, setQueue] = useState<Topic[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refresh = useCallback(async () => {
     const [p, q] = await Promise.all([topicsApi.getPending(), topicsApi.getQueue()])
@@ -21,21 +25,53 @@ export default function TopicsPage() {
     setQueue(q)
   }, [])
 
-  useEffect(() => { refresh().finally(() => setLoading(false)) }, [refresh])
+  useEffect(() => {
+    refresh().finally(() => setLoading(false))
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [refresh])
 
   const handleGenerate = async () => {
+    setError(null)
     setGenerating(true)
-    await topicsApi.generate()
+    try {
+      await topicsApi.generate()
+    } catch {
+      setError('Failed to start topic generation')
+      setGenerating(false)
+      return
+    }
     const before = pending.length
-    const poll = setInterval(async () => {
-      const p = await topicsApi.getPending()
-      if (p.length > before) { setPending(p); clearInterval(poll); setGenerating(false) }
+    pollRef.current = setInterval(async () => {
+      try {
+        const p = await topicsApi.getPending()
+        if (p.length > before) {
+          setPending(p)
+          if (pollRef.current) clearInterval(pollRef.current)
+          if (timeoutRef.current) clearTimeout(timeoutRef.current)
+          setGenerating(false)
+        }
+      } catch {
+        // ignore poll errors, timeout will clean up
+      }
     }, 2000)
-    setTimeout(() => { clearInterval(poll); setGenerating(false) }, 90000)
+    timeoutRef.current = setTimeout(() => {
+      if (pollRef.current) clearInterval(pollRef.current)
+      setGenerating(false)
+    }, 90000)
   }
 
-  const handleApprove = async (id: string) => { await topicsApi.approve(id); await refresh() }
-  const handleReject = async (id: string) => { await topicsApi.reject(id); await refresh() }
+  const handleApprove = async (id: string) => {
+    try { await topicsApi.approve(id); await refresh() }
+    catch { setError('Failed to approve topic') }
+  }
+
+  const handleReject = async (id: string) => {
+    try { await topicsApi.reject(id); await refresh() }
+    catch { setError('Failed to reject topic') }
+  }
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}><CircularProgress /></Box>
 
@@ -48,6 +84,8 @@ export default function TopicsPage() {
           {generating ? 'Generating...' : 'Generate Topics'}
         </Button>
       </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 3 }}>
         <Box>
