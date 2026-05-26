@@ -33,7 +33,7 @@ def get_credentials(project_root: Path) -> Credentials:
         else:
             flow = InstalledAppFlow.from_client_secrets_file(str(creds_file), SCOPES)
             creds = flow.run_local_server(port=0)
-        token_file.write_text(creds.to_json())
+        token_file.write_text(creds.to_json(), encoding="utf-8")
     return creds
 
 
