@@ -1,5 +1,4 @@
 from __future__ import annotations
-import asyncio
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,11 +19,15 @@ def _root() -> Path:
     return settings.project_root
 
 
-def _launch_pipeline(job_id: str, topic_title: str, root: Path) -> None:
+async def _launch_pipeline(job_id: str, topic_title: str, root: Path) -> None:
     log_path = root / ".tmp" / job_id / "pipeline.log"
     cmd = ["python", str(root / "pipeline.py"), "--job", job_id, "--topic", topic_title]
-    asyncio.run(run_and_log(cmd, log_path, cwd=str(root)))
-    _running_jobs.discard(job_id)
+    try:
+        await run_and_log(cmd, log_path, cwd=str(root))
+    except Exception as exc:
+        print(f"[pipeline background task error] {exc}")
+    finally:
+        _running_jobs.discard(job_id)
 
 
 @router.get("/jobs")
@@ -53,7 +56,10 @@ def get_state(job_id: str, root: Path = Depends(_root)):
     state_file = root / ".tmp" / job_id / "state.json"
     if not state_file.exists():
         raise HTTPException(status_code=404, detail="Job not found")
-    return json.loads(state_file.read_text(encoding="utf-8"))
+    try:
+        return json.loads(state_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read job state: {e}") from e
 
 
 @router.post("/run")
