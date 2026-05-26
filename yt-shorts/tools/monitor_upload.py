@@ -6,8 +6,9 @@ from tools.utils.state import load_state, save_state
 
 def run(job_id: str, video_id: str, title: str, project_root: Path) -> None:
     state = load_state(job_id, project_root)
-    state["uploaded_at"] = datetime.now(timezone.utc).isoformat()
-    save_state(state, project_root)
+    if "uploaded_at" not in state:
+        state["uploaded_at"] = datetime.now(timezone.utc).isoformat()
+        save_state(state, project_root)
 
     url = f"https://youtube.com/shorts/{video_id}"
     print(f"""
