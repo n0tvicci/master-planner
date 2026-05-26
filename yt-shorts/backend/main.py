@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import backend.config  # noqa: F401
 from backend.routers import topics as topics_router
+from backend.routers import pipeline as pipeline_router
 
 app = FastAPI(title="YT Shorts Dashboard API", version="1.0.0")
 
@@ -13,6 +14,7 @@ app.add_middleware(
 )
 
 app.include_router(topics_router.router, prefix="/api/v1/topics", tags=["topics"])
+app.include_router(pipeline_router.router, prefix="/api/v1/pipeline", tags=["pipeline"])
 
 
 @app.get("/api/v1/health")
