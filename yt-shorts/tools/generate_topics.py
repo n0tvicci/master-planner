@@ -116,6 +116,27 @@ def append_to_queue(topics: list[dict], project_root: Path) -> None:
     queue_file.write_text(json.dumps(existing, indent=2))
 
 
+def append_to_staging(topics: list[dict], project_root: Path) -> None:
+    staging_file = project_root / "topics" / "pending.json"
+    staging_file.parent.mkdir(exist_ok=True)
+    if staging_file.exists():
+        try:
+            existing = json.loads(staging_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            existing = []
+    else:
+        existing = []
+    now = datetime.now(timezone.utc).isoformat()
+    for topic in topics:
+        topic["id"] = str(uuid.uuid4())[:8]
+        topic["status"] = "pending"
+        topic["created_at"] = now
+        if "title_options" in topic and not topic.get("title"):
+            topic["title"] = topic["title_options"][0]
+    existing.extend(topics)
+    staging_file.write_text(json.dumps(existing, indent=2))
+
+
 if __name__ == "__main__":
     from tools.utils.config import load_config
     project_root = Path(__file__).parent.parent
