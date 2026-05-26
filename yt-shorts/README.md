@@ -68,13 +68,17 @@ Upload an edited video to YouTube.
 
 Use **Dry Run** (top-right) to test the full publish flow without actually uploading.
 
+> **Upload window:** The banner is advisory — clicking Upload always proceeds immediately regardless of the window. If you want to enforce the window, wait until the banner turns green before clicking.
+
+> **Job ID auto-fill:** After running the pipeline, the job ID is automatically pre-filled on the Publish and Analytics pages.
+
 ### Analytics
 
 View the 72-hour audience report after a video has been live.
 
 1. **Enter the Job ID**
 2. If a report exists it loads automatically — shows US audience share %, flag (GREEN ≥ 50% / YELLOW 30–49% / RED < 30%), and country breakdown bars
-3. **Pull Latest** — triggers `pull_analytics` to fetch fresh data from YouTube, then reloads after 5 seconds
+3. **Pull Latest** — triggers `pull_analytics` to fetch fresh data from YouTube, then polls until the report is ready (up to ~60 seconds)
 
 ---
 

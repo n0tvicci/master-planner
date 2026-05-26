@@ -1,5 +1,7 @@
 from __future__ import annotations
 import json
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -8,7 +10,16 @@ from fastapi.responses import StreamingResponse
 from backend.config import settings
 from backend.services.subprocess_runner import run_and_log, tail_log
 
+# config.py adds project_root to sys.path at import time, so tools imports work here
+try:
+    from tools.upload_youtube import is_in_upload_window, next_upload_window
+    _UPLOAD_YOUTUBE_AVAILABLE = True
+except Exception:
+    _UPLOAD_YOUTUBE_AVAILABLE = False
+
 router = APIRouter()
+
+_publishing_jobs: set[str] = set()
 
 
 def _root() -> Path:
@@ -39,20 +50,19 @@ async def _launch_publish(job_id: str, root: Path, dry_run: bool = False) -> Non
         await run_and_log(cmd, log_path, cwd=str(root))
     except Exception as exc:
         print(f"[publish background task error] {exc}")
+    finally:
+        _publishing_jobs.discard(job_id)
 
 
 @router.get("/window")
-def get_window(root: Path = Depends(_root)):
-    import sys
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
-    try:
-        from tools.upload_youtube import is_in_upload_window, next_upload_window
-        return {"in_window": is_in_upload_window(), "next_window": next_upload_window().isoformat()}
-    except Exception:
-        from datetime import datetime, timezone, timedelta
-        now = datetime.now(timezone.utc)
-        return {"in_window": False, "next_window": (now + timedelta(hours=1)).isoformat()}
+def get_window():
+    if _UPLOAD_YOUTUBE_AVAILABLE:
+        try:
+            return {"in_window": is_in_upload_window(), "next_window": next_upload_window().isoformat()}
+        except Exception:
+            pass
+    now = datetime.now(timezone.utc)
+    return {"in_window": False, "next_window": (now + timedelta(hours=1)).isoformat()}
 
 
 @router.get("/{job_id}/metadata")
@@ -69,6 +79,8 @@ def get_metadata(job_id: str, root: Path = Depends(_root)):
 @router.post("/{job_id}/upload")
 def upload(job_id: str, background_tasks: BackgroundTasks,
            dry_run: bool = False, root: Path = Depends(_root)):
+    if job_id in _publishing_jobs:
+        raise HTTPException(status_code=409, detail="Publish already in progress for this job")
     final = root / "output" / job_id / "final.mp4"
     if not final.exists():
         raise HTTPException(
@@ -76,6 +88,7 @@ def upload(job_id: str, background_tasks: BackgroundTasks,
             detail=f"final.mp4 not found at output/{job_id}/final.mp4 — export from CapCut first",
         )
     _write_gate_to_state(job_id, root)
+    _publishing_jobs.add(job_id)
     background_tasks.add_task(_launch_publish, job_id, root, dry_run)
     return {"status": "uploading", "job_id": job_id}
 

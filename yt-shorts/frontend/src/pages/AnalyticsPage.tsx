@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -7,18 +7,30 @@ import TextField from '@mui/material/TextField'
 import LinearProgress from '@mui/material/LinearProgress'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { analyticsApi } from '../api/analytics'
+import { usePipelineContext } from '../store/PipelineContext'
 import ErrorAlert from '../components/ErrorAlert'
 import SectionLabel from '../components/SectionLabel'
 import type { AnalyticsReport } from '../types'
 
 const FLAG_COLOR = { GREEN: 'success', YELLOW: 'warning', RED: 'error' } as const
 const FLAG_LABEL = { GREEN: 'GREEN', YELLOW: 'YELLOW', RED: 'RED' } as const
+const POLL_INTERVAL = 4000
+const POLL_MAX = 15
 
 export default function AnalyticsPage() {
-  const [jobId, setJobId] = useState('')
+  const { activeJobId } = usePipelineContext()
+  const [jobId, setJobId] = useState(activeJobId ?? '')
   const [report, setReport] = useState<AnalyticsReport | null>(null)
   const [pulling, setPulling] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-fill from pipeline when the user hasn't typed anything
+  useEffect(() => {
+    setJobId(prev => prev || activeJobId || '')
+  }, [activeJobId])
+
+  useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current) }, [])
 
   const load = async (id: string) => {
     setError(null)
@@ -33,7 +45,19 @@ export default function AnalyticsPage() {
     setPulling(true); setError(null)
     try {
       await analyticsApi.pull(jobId)
-      setTimeout(() => load(jobId).finally(() => setPulling(false)), 5000)
+      let attempts = 0
+      const poll = () => {
+        if (attempts >= POLL_MAX) {
+          setPulling(false)
+          setError('Analytics pull timed out — try again in a minute.')
+          return
+        }
+        attempts++
+        analyticsApi.getReport(jobId)
+          .then(r => { setReport(r); setError(null); setPulling(false) })
+          .catch(() => { pollRef.current = setTimeout(poll, POLL_INTERVAL) })
+      }
+      pollRef.current = setTimeout(poll, POLL_INTERVAL)
     } catch { setError('Failed to pull analytics'); setPulling(false) }
   }
 

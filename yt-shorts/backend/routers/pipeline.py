@@ -19,7 +19,23 @@ def _root() -> Path:
     return settings.project_root
 
 
+def _lock(root: Path, job_id: str) -> Path:
+    return root / ".tmp" / job_id / ".running"
+
+
+def _any_running(root: Path) -> bool:
+    if _running_jobs:
+        return True
+    tmp = root / ".tmp"
+    return tmp.exists() and any(
+        d.is_dir() and (d / ".running").exists() for d in tmp.iterdir()
+    )
+
+
 async def _launch_pipeline(job_id: str, topic_title: str, root: Path) -> None:
+    lock = _lock(root, job_id)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.touch()
     log_path = root / ".tmp" / job_id / "pipeline.log"
     cmd = ["python", str(root / "pipeline.py"), "--job", job_id, "--topic", topic_title]
     try:
@@ -28,6 +44,7 @@ async def _launch_pipeline(job_id: str, topic_title: str, root: Path) -> None:
         print(f"[pipeline background task error] {exc}")
     finally:
         _running_jobs.discard(job_id)
+        lock.unlink(missing_ok=True)
 
 
 @router.get("/jobs")
@@ -44,7 +61,7 @@ def get_jobs(root: Path = Depends(_root)):
                 jobs.append({
                     "job_id": job_dir.name,
                     "completed_steps": state.get("completed_steps", []),
-                    "running": job_dir.name in _running_jobs,
+                    "running": job_dir.name in _running_jobs or (job_dir / ".running").exists(),
                 })
             except (json.JSONDecodeError, OSError):
                 pass
@@ -64,10 +81,13 @@ def get_state(job_id: str, root: Path = Depends(_root)):
 
 @router.post("/run")
 def run_pipeline(background_tasks: BackgroundTasks, root: Path = Depends(_root)):
+    if _any_running(root):
+        raise HTTPException(status_code=409, detail="A pipeline job is already running")
     queue: list[dict] = read_json(root / "topics" / "queue.json")
-    if not queue:
-        raise HTTPException(status_code=400, detail="Topic queue is empty")
-    topic = queue[0]
+    approved = [t for t in queue if t.get("status") == "approved"]
+    if not approved:
+        raise HTTPException(status_code=400, detail="No approved topics in queue")
+    topic = approved[0]
     topic_title = topic.get("title", "")
     job_id = f"job-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     _running_jobs.add(job_id)

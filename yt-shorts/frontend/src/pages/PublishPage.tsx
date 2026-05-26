@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -9,6 +9,7 @@ import Chip from '@mui/material/Chip'
 import TextField from '@mui/material/TextField'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { usePublishContext } from '../store/PublishContext'
+import { usePipelineContext } from '../store/PipelineContext'
 import { publishApi } from '../api/publish'
 import { useSSE } from '../hooks/useSSE'
 import LogPanel from '../components/LogPanel'
@@ -19,6 +20,7 @@ import type { Metadata, UploadWindow } from '../types'
 
 export default function PublishPage() {
   const { jobId, setJobId, checks, toggleCheck, allChecked, gateItems, resetChecks } = usePublishContext()
+  const { activeJobId } = usePipelineContext()
   const [window_, setWindow_] = useState<UploadWindow | null>(null)
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -31,6 +33,11 @@ export default function PublishPage() {
     const id = setInterval(() => publishApi.getWindow().then(setWindow_).catch(() => {}), 60000)
     return () => clearInterval(id)
   }, [])
+
+  // Auto-fill job ID from the last pipeline run when the field is empty
+  useEffect(() => {
+    if (activeJobId && !jobId) setJobId(activeJobId)
+  }, [activeJobId])
 
   const loadMeta = useCallback(async (id: string) => {
     try { setMetadata(await publishApi.getMetadata(id)) }
