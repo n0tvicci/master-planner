@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Env & secrets
+.env
+credentials.json
+token.json
+
+# Venv
+.venv/
+
+# Temp pipeline outputs
+.tmp/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
