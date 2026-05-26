@@ -15,12 +15,13 @@ from pathlib import Path
 
 import os as _os
 PROJECT_ROOT = Path(_os.environ["PUBLISH_PROJECT_ROOT"]) if "PUBLISH_PROJECT_ROOT" in _os.environ else Path(__file__).parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def main(project_root: Path | None = None) -> None:
-    import publish as _self_module
     if project_root is None:
-        project_root = _self_module.PROJECT_ROOT
+        project_root = PROJECT_ROOT
 
     parser = argparse.ArgumentParser(description="YT Shorts post-edit pipeline")
     parser.add_argument("--job", required=True, help="Job ID to publish")
@@ -33,7 +34,6 @@ def main(project_root: Path | None = None) -> None:
     args = parser.parse_args()
 
     job_id = args.job
-    sys.path.insert(0, str(project_root))
 
     from tools.utils.config import load_config
     from tools.utils.state import load_state, save_state, mark_complete, is_complete
@@ -45,7 +45,6 @@ def main(project_root: Path | None = None) -> None:
 
     # -- analytics mode -------------------------------------------------------
     if args.analytics:
-        config = load_config()
         state = load_state(job_id, project_root)
         video_id = state.get("video_id")
         if not video_id:
@@ -129,7 +128,7 @@ def main(project_root: Path | None = None) -> None:
 
     # -- Step 4: monitor_upload -----------------------------------------------
     if not is_complete("monitor_upload", state):
-        monitor_upload.run(job_id, state["video_id"], metadata["title"], project_root)
+        monitor_upload.run(job_id, state.get("video_id", ""), metadata["title"], project_root)
         state = mark_complete("monitor_upload", state, project_root)
     else:
         print(f"Monitoring card: youtube.com/shorts/{state.get('video_id', 'unknown')}")
