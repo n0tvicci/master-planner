@@ -4,10 +4,11 @@ import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
 import TextField from '@mui/material/TextField'
-import Alert from '@mui/material/Alert'
 import LinearProgress from '@mui/material/LinearProgress'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { analyticsApi } from '../api/analytics'
+import ErrorAlert from '../components/ErrorAlert'
+import SectionLabel from '../components/SectionLabel'
 import type { AnalyticsReport } from '../types'
 
 const FLAG_COLOR = { GREEN: 'success', YELLOW: 'warning', RED: 'error' } as const
@@ -53,7 +54,7 @@ export default function AnalyticsPage() {
       <TextField label="Job ID" size="small" value={jobId} placeholder="job-20260526-143021"
         onChange={e => setJobId(e.target.value)} sx={{ mb: 2, width: 300 }} />
 
-      {error && <Alert severity="info" sx={{ mb: 2 }}>{error}</Alert>}
+      <ErrorAlert error={error} severity="info" />
 
       {report && (
         <Box>
@@ -76,18 +77,14 @@ export default function AnalyticsPage() {
             </Paper>
 
             <Paper variant="outlined" sx={{ flex: 1, p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5, display: 'block' }}>
-                Report Details
-              </Typography>
+              <SectionLabel>Report Details</SectionLabel>
               {report.notes && <Typography variant="body2" color="text.secondary">{report.notes}</Typography>}
             </Paper>
           </Box>
 
           {countries.length > 0 && (
             <>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-                Country Breakdown
-              </Typography>
+              <SectionLabel>Country Breakdown</SectionLabel>
               <Paper variant="outlined">
                 {countries.map(([country, share], i) => {
                   const pct = Math.round(share * 100)

@@ -5,7 +5,6 @@ import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
-import Alert from '@mui/material/Alert'
 import Chip from '@mui/material/Chip'
 import TextField from '@mui/material/TextField'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
@@ -13,6 +12,9 @@ import { usePublishContext } from '../store/PublishContext'
 import { publishApi } from '../api/publish'
 import { useSSE } from '../hooks/useSSE'
 import LogPanel from '../components/LogPanel'
+import ErrorAlert from '../components/ErrorAlert'
+import SectionLabel from '../components/SectionLabel'
+import { getAxiosErrorMessage } from '../utils/errors'
 import type { Metadata, UploadWindow } from '../types'
 
 export default function PublishPage() {
@@ -50,8 +52,7 @@ export default function PublishPage() {
     setError(null); setLogLines([]); setUploading(true)
     try { await publishApi.upload(jobId); setStreamJobId(jobId) }
     catch (e: unknown) {
-      const axiosMsg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setError(axiosMsg ?? 'Upload failed')
+      setError(getAxiosErrorMessage(e, 'Upload failed'))
       setUploading(false)
     }
   }
@@ -71,13 +72,11 @@ export default function PublishPage() {
       <TextField label="Job ID" size="small" value={jobId ?? ''} placeholder="job-20260526-143021"
         onChange={e => handleJobChange(e.target.value)} sx={{ mb: 2, width: 300 }} />
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      <ErrorAlert error={error} onClose={() => setError(null)} />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-            Pre-Upload Checklist
-          </Typography>
+          <SectionLabel>Pre-Upload Checklist</SectionLabel>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             {gateItems.map((item, i) => (
               <Box key={i} sx={{ borderBottom: i < gateItems.length - 1 ? '1px solid' : 'none', borderColor: 'divider', py: 0.5 }}>
@@ -104,9 +103,7 @@ export default function PublishPage() {
         </Box>
 
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-            Metadata Preview
-          </Typography>
+          <SectionLabel>Metadata Preview</SectionLabel>
           {metadata ? (
             <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
               <Typography variant="caption" color="text.secondary">Title</Typography>
@@ -125,7 +122,7 @@ export default function PublishPage() {
           )}
           {logLines.length > 0 && (
             <Box sx={{ mt: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>Upload Log</Typography>
+              <SectionLabel>Upload Log</SectionLabel>
               <LogPanel lines={logLines} height={180} />
             </Box>
           )}

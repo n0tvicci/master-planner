@@ -4,9 +4,10 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import Alert from '@mui/material/Alert'
 import AddIcon from '@mui/icons-material/Add'
 import TopicCard from '../components/TopicCard'
+import ErrorAlert from '../components/ErrorAlert'
+import SectionLabel from '../components/SectionLabel'
 import { topicsApi } from '../api/topics'
 import type { Topic } from '../types'
 
@@ -85,22 +86,18 @@ export default function TopicsPage() {
         </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      <ErrorAlert error={error} onClose={() => setError(null)} />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 3 }}>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-            Pending Approval ({pending.length})
-          </Typography>
+          <SectionLabel>Pending Approval ({pending.length})</SectionLabel>
           {pending.length === 0
             ? <Typography variant="body2" color="text.secondary">No pending topics. Click Generate to create new ones.</Typography>
             : pending.map(t => <TopicCard key={t.id} topic={t} onApprove={handleApprove} onReject={handleReject} />)
           }
         </Box>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
-            Approved Queue ({queue.length})
-          </Typography>
+          <SectionLabel>Approved Queue ({queue.length})</SectionLabel>
           {queue.map((t, i) => (
             <Paper key={t.id ?? i} variant="outlined" sx={{ p: 1.5, mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Typography variant="caption" color="primary.main" fontWeight={700} sx={{ minWidth: 16 }}>{i + 1}</Typography>
