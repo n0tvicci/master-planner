@@ -31,11 +31,14 @@ def get_published(root: Path = Depends(_root)):
 @router.post("/generate")
 def generate(background_tasks: BackgroundTasks, root: Path = Depends(_root)):
     def _run():
-        from tools.utils.config import load_config
-        from tools.generate_topics import run, append_to_staging
-        config = load_config()
-        topics = run(config, root)
-        append_to_staging(topics, root)
+        try:
+            from tools.utils.config import load_config
+            from tools.generate_topics import run, append_to_staging
+            config = load_config()
+            topics = run(config, root)
+            append_to_staging(topics, root)
+        except Exception as exc:
+            print(f"[generate background task error] {exc}")
 
     background_tasks.add_task(_run)
     return {"status": "generating"}
@@ -47,11 +50,14 @@ def approve(topic_id: str, root: Path = Depends(_root)):
     match = next((t for t in pending if t.get("id") == topic_id), None)
     if match is None:
         raise HTTPException(status_code=404, detail="Topic not found")
-    write_json(root / "topics" / "pending.json",
-               [t for t in pending if t.get("id") != topic_id])
-    queue: list[dict] = read_json(root / "topics" / "queue.json")
-    queue.append(match)
-    write_json(root / "topics" / "queue.json", queue)
+    try:
+        write_json(root / "topics" / "pending.json",
+                   [t for t in pending if t.get("id") != topic_id])
+        queue: list[dict] = read_json(root / "topics" / "queue.json")
+        queue.append(match)
+        write_json(root / "topics" / "queue.json", queue)
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Write failed: {e}") from e
     return {"status": "approved", "id": topic_id}
 
 
@@ -60,6 +66,9 @@ def reject(topic_id: str, root: Path = Depends(_root)):
     pending: list[dict] = read_json(root / "topics" / "pending.json")
     if not any(t.get("id") == topic_id for t in pending):
         raise HTTPException(status_code=404, detail="Topic not found")
-    write_json(root / "topics" / "pending.json",
-               [t for t in pending if t.get("id") != topic_id])
+    try:
+        write_json(root / "topics" / "pending.json",
+                   [t for t in pending if t.get("id") != topic_id])
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Write failed: {e}") from e
     return {"status": "rejected", "id": topic_id}

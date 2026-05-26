@@ -131,10 +131,13 @@ def append_to_staging(topics: list[dict], project_root: Path) -> None:
         topic["id"] = str(uuid.uuid4())[:8]
         topic["status"] = "pending"
         topic["created_at"] = now
-        if "title_options" in topic and not topic.get("title"):
+        if "title_options" in topic and not topic.get("title") and topic["title_options"]:
             topic["title"] = topic["title_options"][0]
     existing.extend(topics)
-    staging_file.write_text(json.dumps(existing, indent=2))
+    try:
+        staging_file.write_text(json.dumps(existing, indent=2))
+    except OSError as e:
+        raise OSError(f"Failed to write staging file {staging_file}: {e}") from e
 
 
 if __name__ == "__main__":
