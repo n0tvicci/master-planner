@@ -49,3 +49,24 @@ def test_generate_topics_uses_api_key():
         mock_client = _mock_anthropic(MockClass, _MOCK_TOPICS)
         generate_topics("my-real-key")
         MockClass.assert_called_once_with(api_key="my-real-key")
+
+
+def test_generate_topics_raises_on_invalid_json():
+    with patch("backend.features.yt_shorts.services.topics.Anthropic") as MockClass:
+        mock_client = MagicMock()
+        MockClass.return_value = mock_client
+        mock_client.messages.create.return_value.content[0].text = "not valid json"
+        import pytest
+        with pytest.raises(ValueError, match="Invalid JSON"):
+            generate_topics("fake-key")
+
+
+def test_generate_topics_raises_on_wrong_count():
+    with patch("backend.features.yt_shorts.services.topics.Anthropic") as MockClass:
+        mock_client = MagicMock()
+        MockClass.return_value = mock_client
+        only_five = {"topics": [{"title": f"T{i}", "misconception": "X", "real_answer": "Y", "us_curiosity_score": 5} for i in range(5)]}
+        mock_client.messages.create.return_value.content[0].text = json.dumps(only_five)
+        import pytest
+        with pytest.raises(ValueError, match="Expected 10 topics"):
+            generate_topics("fake-key")

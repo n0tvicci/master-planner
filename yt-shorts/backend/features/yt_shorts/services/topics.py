@@ -32,5 +32,13 @@ def generate_topics(api_key: str) -> list[Topic]:
         max_tokens=2048,
         messages=[{"role": "user", "content": _PROMPT}],
     )
-    raw = json.loads(message.content[0].text)
-    return [Topic(id=str(uuid.uuid4()), **item) for item in raw["topics"]]
+    if not message.content:
+        raise ValueError("Empty response from Claude API")
+    try:
+        raw = json.loads(message.content[0].text)
+    except (json.JSONDecodeError, KeyError) as e:
+        raise ValueError(f"Invalid JSON from Claude API: {e}") from e
+    topics = raw.get("topics", [])
+    if len(topics) != 10:
+        raise ValueError(f"Expected 10 topics, got {len(topics)}")
+    return [Topic(id=str(uuid.uuid4()), **item) for item in topics]
