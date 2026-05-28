@@ -1,26 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import backend.config  # noqa: F401
-from backend.routers import topics as topics_router
-from backend.routers import pipeline as pipeline_router
-from backend.routers import publish as publish_router
-from backend.routers import analytics as analytics_router
+from backend.config import get_settings
+from backend.features.yt_shorts.router import router as yt_shorts_router
+from backend.routers.core import router as core_router
 
-app = FastAPI(title="YT Shorts Dashboard API", version="1.0.0")
+settings = get_settings()
+
+app = FastAPI(title="Automation Platform", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(topics_router.router, prefix="/api/v1/topics", tags=["topics"])
-app.include_router(pipeline_router.router, prefix="/api/v1/pipeline", tags=["pipeline"])
-app.include_router(publish_router.router, prefix="/api/v1/publish", tags=["publish"])
-app.include_router(analytics_router.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(yt_shorts_router, prefix="/api")
+app.include_router(core_router, prefix="/api")
 
 
-@app.get("/api/v1/health")
-async def health():
+@app.get("/health")
+def health():
     return {"status": "ok"}
