@@ -5,6 +5,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     anthropic_api_key: str = ""
     elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = ""
     pexels_api_key: str = ""
     pixabay_api_key: str = ""
     tmp_dir: str = ".tmp"
