@@ -1,18 +1,18 @@
-import sys
-from pathlib import Path
 from pydantic_settings import BaseSettings
+from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    project_root: Path = Path(__file__).parent.parent
+    anthropic_api_key: str = ""
+    elevenlabs_api_key: str = ""
+    pexels_api_key: str = ""
+    pixabay_api_key: str = ""
+    tmp_dir: str = ".tmp"
+    cors_origins: list[str] = ["http://localhost:5173"]
 
-    model_config = {
-        "env_prefix": "YT_",
-        "env_file": str(Path(__file__).parent.parent / ".env"),
-    }
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
-settings = Settings()
-
-if str(settings.project_root) not in sys.path:
-    sys.path.insert(0, str(settings.project_root))
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
