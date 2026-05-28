@@ -24,7 +24,10 @@ class ProjectStore:
         path = self._path(project_id)
         if not path.exists():
             return None
-        return json.loads(path.read_text())
+        try:
+            return json.loads(path.read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
 
     def update(self, project_id: str, data: dict) -> dict:
         state = self.get(project_id)
@@ -42,7 +45,10 @@ class ProjectStore:
         for entry in self.base.iterdir():
             state_file = entry / "state.json"
             if entry.is_dir() and state_file.exists():
-                results.append(json.loads(state_file.read_text()))
+                try:
+                    results.append(json.loads(state_file.read_text()))
+                except (json.JSONDecodeError, OSError):
+                    continue
         return sorted(results, key=lambda x: x["created_at"], reverse=True)
 
 
