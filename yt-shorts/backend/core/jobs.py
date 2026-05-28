@@ -26,7 +26,9 @@ class JobManager:
 
     def update(self, job_id: str, **kwargs) -> Job:
         with self._lock:
-            job = self._jobs[job_id]
+            job = self._jobs.get(job_id)
+            if job is None:
+                raise KeyError(f"Job {job_id} not found")
             updated = job.model_copy(
                 update={**kwargs, "updated_at": datetime.now(timezone.utc)}
             )
@@ -35,7 +37,9 @@ class JobManager:
 
     def append_log(self, job_id: str, message: str) -> Job:
         with self._lock:
-            job = self._jobs[job_id]
+            job = self._jobs.get(job_id)
+            if job is None:
+                raise KeyError(f"Job {job_id} not found")
             updated = job.model_copy(
                 update={
                     "log": [*job.log, message],
@@ -46,10 +50,12 @@ class JobManager:
             return updated
 
     def get(self, job_id: str) -> Job | None:
-        return self._jobs.get(job_id)
+        with self._lock:
+            return self._jobs.get(job_id)
 
     def list(self) -> list[Job]:
-        return list(self._jobs.values())
+        with self._lock:
+            return list(self._jobs.values())
 
 
 job_manager = JobManager()
