@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from backend.core.jobs import job_manager
@@ -16,11 +17,11 @@ async def stream_job(job_id: str):
     async def generate():
         job = job_manager.get(job_id)
         if job is None:
-            yield 'data: {"error": "job not found"}\n\n'
+            yield f"data: {json.dumps({'error': 'job not found'})}\n\n"
             return
         for line in job.log:
-            yield f'data: {{"log": {line!r}}}\n\n'
-        yield f'data: {{"status": "{job.status}"}}\n\n'
+            yield f"data: {json.dumps({'log': line})}\n\n"
+        yield f"data: {json.dumps({'status': job.status.value})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
