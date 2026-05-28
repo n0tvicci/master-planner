@@ -26,3 +26,4 @@ def test_cors_headers():
         headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"},
     )
     assert response.status_code in (200, 204)
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
