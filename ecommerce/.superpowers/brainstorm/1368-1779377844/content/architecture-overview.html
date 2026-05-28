@@ -1,0 +1,227 @@
+<h2>Section 1 — High-Level System Architecture</h2>
+<p class="subtitle">Modular Monolith + Job Queue · React Vite + Node/Express · PostgreSQL + Redis</p>
+
+<style>
+.arch {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+  font-size: 13px;
+}
+.arch-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  justify-content: center;
+}
+.arch-box {
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  flex: 1;
+  min-width: 0;
+}
+.arch-box.highlight {
+  border-color: rgba(99,179,237,0.5);
+  background: rgba(99,179,237,0.08);
+}
+.arch-box.green {
+  border-color: rgba(104,211,145,0.5);
+  background: rgba(104,211,145,0.06);
+}
+.arch-box.orange {
+  border-color: rgba(251,191,36,0.5);
+  background: rgba(251,191,36,0.06);
+}
+.arch-box.purple {
+  border-color: rgba(167,139,250,0.5);
+  background: rgba(167,139,250,0.06);
+}
+.arch-box.red {
+  border-color: rgba(252,129,129,0.5);
+  background: rgba(252,129,129,0.06);
+}
+.arch-box h4 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+.arch-box .title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.arch-box ul {
+  margin: 6px 0 0 0;
+  padding-left: 14px;
+  opacity: 0.8;
+  line-height: 1.7;
+}
+.arrow {
+  text-align: center;
+  font-size: 18px;
+  opacity: 0.4;
+  line-height: 1;
+}
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  margin-right: 4px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  opacity: 0.9;
+}
+.divider-label {
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.35;
+  padding: 2px 0;
+}
+</style>
+
+<div class="arch">
+
+  <!-- Layer 1: Clients -->
+  <div class="arch-row">
+    <div class="arch-box highlight" style="text-align:center;">
+      <h4>Client Layer</h4>
+      <div class="title">React Vite SPA</div>
+      <ul style="list-style:none;padding:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+        <li><span class="badge">Auth &amp; Workspaces</span></li>
+        <li><span class="badge">Text Writer</span></li>
+        <li><span class="badge">Image Generator</span></li>
+        <li><span class="badge">Video Generator</span></li>
+        <li><span class="badge">Credit Wallet</span></li>
+        <li><span class="badge">Settings &amp; Members</span></li>
+      </ul>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">Deploy: Vercel → AWS CloudFront</div>
+    </div>
+  </div>
+
+  <div class="arrow">↕ HTTPS / REST + WebSocket (job status)</div>
+
+  <!-- Layer 2: API -->
+  <div class="arch-row">
+    <div class="arch-box green" style="flex:3;">
+      <h4>API Layer · Node.js / Express</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+        <div style="flex:1;min-width:120px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;margin-bottom:4px;">auth</div>
+          <div style="opacity:0.7;font-size:12px;">JWT · sessions<br/>invite tokens</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;margin-bottom:4px;">workspaces</div>
+          <div style="opacity:0.7;font-size:12px;">tenants · members<br/>roles · RBAC</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;margin-bottom:4px;">billing</div>
+          <div style="opacity:0.7;font-size:12px;">Stripe · credit packs<br/>credit ledger</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;margin-bottom:4px;">jobs</div>
+          <div style="opacity:0.7;font-size:12px;">enqueue · status<br/>results · history</div>
+        </div>
+      </div>
+      <div style="margin-top:6px;opacity:0.5;font-size:11px;">Deploy: Railway → AWS ECS / App Runner</div>
+    </div>
+  </div>
+
+  <div class="arrow">↕ Enqueue jobs &amp; deduct credits atomically</div>
+
+  <!-- Layer 3: Queue + Workers -->
+  <div class="arch-row">
+    <div class="arch-box orange" style="flex:1;">
+      <h4>Queue</h4>
+      <div class="title">Redis + BullMQ</div>
+      <ul>
+        <li>text-queue</li>
+        <li>image-queue</li>
+        <li>video-queue</li>
+        <li>Retry &amp; backoff</li>
+      </ul>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">→ AWS SQS</div>
+    </div>
+    <div class="arch-box orange" style="flex:2;">
+      <h4>Background Workers (BullMQ)</h4>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;font-size:13px;">Text Worker</div>
+          <div style="opacity:0.7;font-size:12px;margin-top:4px;">GPT-4o / Claude<br/>Title + Description</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;font-size:13px;">Image Worker</div>
+          <div style="opacity:0.7;font-size:12px;margin-top:4px;">DALL-E / Stability<br/>Ideogram</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;">
+          <div style="font-weight:700;font-size:13px;">Video Worker</div>
+          <div style="opacity:0.7;font-size:12px;margin-top:4px;">Runway / Kling<br/>Pika</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">→ AWS Lambda or ECS Tasks</div>
+    </div>
+  </div>
+
+  <div class="arrow">↕ Read/write data &amp; store generated assets</div>
+
+  <!-- Layer 4: Data + Storage -->
+  <div class="arch-row">
+    <div class="arch-box purple" style="flex:1;">
+      <h4>Primary DB</h4>
+      <div class="title">PostgreSQL</div>
+      <ul>
+        <li>Users &amp; workspaces</li>
+        <li>Credit ledger</li>
+        <li>Job history</li>
+        <li>Stripe events</li>
+      </ul>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">→ AWS RDS</div>
+    </div>
+    <div class="arch-box purple" style="flex:1;">
+      <h4>Cache / Queue Store</h4>
+      <div class="title">Redis</div>
+      <ul>
+        <li>BullMQ job state</li>
+        <li>Session cache</li>
+        <li>Rate limit counters</li>
+      </ul>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">→ AWS ElastiCache</div>
+    </div>
+    <div class="arch-box purple" style="flex:1;">
+      <h4>Asset Storage</h4>
+      <div class="title">Cloudflare R2 / S3</div>
+      <ul>
+        <li>Generated images</li>
+        <li>Generated videos</li>
+        <li>Output delivery</li>
+      </ul>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">→ AWS S3</div>
+    </div>
+  </div>
+
+  <div class="arrow">↕ Platform-managed AI calls</div>
+
+  <!-- Layer 5: AI Providers -->
+  <div class="arch-row">
+    <div class="arch-box red" style="text-align:center;">
+      <h4>AI Providers (Platform Keys — hidden from clients)</h4>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+        <span class="badge">OpenAI (text + images)</span>
+        <span class="badge">Anthropic Claude (text)</span>
+        <span class="badge">Stability AI (images)</span>
+        <span class="badge">Ideogram (images)</span>
+        <span class="badge">Runway ML (video)</span>
+        <span class="badge">Kling (video)</span>
+      </div>
+      <div style="margin-top:8px;opacity:0.5;font-size:11px;">Provider adapter pattern — swap providers without changing worker code</div>
+    </div>
+  </div>
+
+</div>

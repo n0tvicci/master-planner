@@ -1,0 +1,185 @@
+<h2>Platform Architecture</h2>
+<p class="subtitle">Shared core + pluggable feature modules. YT Shorts is the first feature.</p>
+
+<style>
+* { box-sizing: border-box; }
+.arch { display: flex; flex-direction: column; gap: 12px; max-width: 860px; margin: 0 auto; }
+
+.layer {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.layer-header {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.layer-body {
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Frontend */
+.layer-fe { border-color: rgba(102,126,234,0.4); }
+.layer-fe .layer-header { background: rgba(102,126,234,0.2); color: #a3b3f7; }
+.layer-fe-label { font-size: 12px; font-weight: 600; color: #a3b3f7; margin-bottom: 2px; }
+
+/* Backend */
+.layer-be { border-color: rgba(72,187,120,0.35); }
+.layer-be .layer-header { background: rgba(72,187,120,0.15); color: #68d391; }
+
+/* Core */
+.layer-core { border-color: rgba(237,137,54,0.35); }
+.layer-core .layer-header { background: rgba(237,137,54,0.15); color: #f6ad55; }
+
+.box {
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 13px;
+  flex: 1;
+  min-width: 140px;
+}
+.box-title { font-weight: 700; margin-bottom: 3px; }
+.box-detail { font-size: 11px; opacity: 0.65; line-height: 1.5; }
+
+.box-shell { background: rgba(102,126,234,0.15); border: 1px solid rgba(102,126,234,0.3); color: #c3cfff; }
+.box-feature-fe { background: rgba(102,126,234,0.08); border: 1px solid rgba(102,126,234,0.2); color: #a3b3f7; }
+.box-feature-be { background: rgba(72,187,120,0.08); border: 1px solid rgba(72,187,120,0.2); color: #68d391; }
+.box-core { background: rgba(237,137,54,0.1); border: 1px solid rgba(237,137,54,0.25); color: #f6ad55; }
+.box-future { background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.15); color: rgba(255,255,255,0.35); }
+
+.arrow { text-align: center; color: rgba(255,255,255,0.2); font-size: 18px; margin: -4px 0; }
+
+.split { display: flex; gap: 12px; }
+.split-col { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.split-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 4px; }
+
+.tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-right: 4px; margin-top: 3px; }
+.tag-get { background: rgba(72,187,120,0.2); color: #68d391; }
+.tag-post { background: rgba(237,137,54,0.2); color: #f6ad55; }
+.tag-sse { background: rgba(102,126,234,0.2); color: #a3b3f7; }
+</style>
+
+<div class="arch">
+
+  <!-- FRONTEND -->
+  <div class="layer layer-fe">
+    <div class="layer-header">Frontend — React + MUI + Vite + TypeScript</div>
+    <div class="layer-body" style="flex-direction:column; gap:10px;">
+      <div>
+        <div class="split-label">Shared Shell (core/)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="box box-shell">
+            <div class="box-title">AppShell</div>
+            <div class="box-detail">Sidebar nav, feature switcher, layout wrapper</div>
+          </div>
+          <div class="box box-shell">
+            <div class="box-title">JobsPanel</div>
+            <div class="box-detail">Live status of running jobs across all features</div>
+          </div>
+          <div class="box box-shell">
+            <div class="box-title">ProjectContext</div>
+            <div class="box-detail">Active project_id shared across feature pages</div>
+          </div>
+          <div class="box box-shell">
+            <div class="box-title">api/client.ts</div>
+            <div class="box-detail">Base typed fetch client, error handling, SSE helpers</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="split-label">Feature Modules (features/)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="box box-feature-fe">
+            <div class="box-title">yt-shorts/</div>
+            <div class="box-detail">pages/, components/, api/ — 11 pipeline pages</div>
+          </div>
+          <div class="box box-future">
+            <div class="box-title">ecommerce/</div>
+            <div class="box-detail">future feature</div>
+          </div>
+          <div class="box box-future">
+            <div class="box-title">social-scheduler/</div>
+            <div class="box-detail">future feature</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↕</div>
+
+  <!-- BACKEND -->
+  <div class="layer layer-be">
+    <div class="layer-header">Backend — FastAPI + Python</div>
+    <div class="layer-body" style="flex-direction:column; gap:10px;">
+      <div>
+        <div class="split-label">Feature Modules (features/)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="box box-feature-be">
+            <div class="box-title">yt_shorts/</div>
+            <div class="box-detail">
+              routers/ · services/ · models/<br>
+              <span class="tag tag-post">POST</span>/api/yt-shorts/projects/...<br>
+              <span class="tag tag-get">GET</span>/api/yt-shorts/projects/{id}
+            </div>
+          </div>
+          <div class="box box-future">
+            <div class="box-title">ecommerce/</div>
+            <div class="box-detail">future feature<br>/api/ecommerce/...</div>
+          </div>
+          <div class="box box-future">
+            <div class="box-title">social_scheduler/</div>
+            <div class="box-detail">future feature<br>/api/social/...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">↕</div>
+
+  <!-- CORE -->
+  <div class="layer layer-core">
+    <div class="layer-header">Shared Core — used by all features</div>
+    <div class="layer-body">
+      <div class="box box-core">
+        <div class="box-title">Jobs</div>
+        <div class="box-detail">
+          Background task tracking<br>status, progress, errors<br>
+          <span class="tag tag-get">GET</span>/api/core/jobs<br>
+          <span class="tag tag-sse">SSE</span>/api/core/jobs/{id}/stream
+        </div>
+      </div>
+      <div class="box box-core">
+        <div class="box-title">Store</div>
+        <div class="box-detail">
+          Project state persistence<br>.tmp/projects/{id}/state.json<br>
+          Read/write per feature step
+        </div>
+      </div>
+      <div class="box box-core">
+        <div class="box-title">Notifications</div>
+        <div class="box-detail">
+          Step complete, approval needed,<br>error alerts — SSE broadcast<br>
+          <span class="tag tag-sse">SSE</span>/api/core/events
+        </div>
+      </div>
+      <div class="box box-core">
+        <div class="box-title">Settings</div>
+        <div class="box-detail">
+          Pydantic config from .env<br>API keys, service URLs,<br>shared across features
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

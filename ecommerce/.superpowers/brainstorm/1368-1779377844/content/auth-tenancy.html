@@ -1,0 +1,154 @@
+<h2>Section 2 — Multi-Tenancy &amp; Auth Model</h2>
+<p class="subtitle">How users, workspaces, roles, and permissions are structured</p>
+
+<style>
+.diagram { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; font-size: 13px; }
+.row { display: flex; gap: 12px; align-items: flex-start; justify-content: center; }
+.box {
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+  flex: 1;
+}
+.box.blue  { border-color: rgba(99,179,237,0.5);  background: rgba(99,179,237,0.07); }
+.box.green { border-color: rgba(104,211,145,0.5); background: rgba(104,211,145,0.06); }
+.box.orange{ border-color: rgba(251,191,36,0.5);  background: rgba(251,191,36,0.06); }
+.box.purple{ border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.06); }
+.box h4 { margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+.box .title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.field { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
+.field:last-child { border: none; }
+.field .name { opacity: 0.85; }
+.field .type { opacity: 0.4; font-family: monospace; font-size: 11px; }
+.role-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.role-badge {
+  flex: 1; min-width: 100px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.role-badge .rname { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.role-badge ul { list-style: none; padding: 0; margin: 0; opacity: 0.7; font-size: 11px; text-align: left; }
+.flow-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px;
+}
+.flow-step .num {
+  background: rgba(99,179,237,0.3); color: #90cdf4;
+  border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0; margin-top: 1px;
+}
+.flow-step .text { font-size: 13px; line-height: 1.6; }
+.flow-step .text strong { color: #90cdf4; }
+.arrow { text-align: center; font-size: 16px; opacity: 0.35; }
+</style>
+
+<div class="diagram">
+
+  <!-- Core entity relationships -->
+  <div class="row">
+    <div class="box blue" style="flex:1.2;">
+      <h4>Entity</h4>
+      <div class="title">User</div>
+      <div class="field"><span class="name">id</span><span class="type">uuid PK</span></div>
+      <div class="field"><span class="name">email</span><span class="type">unique</span></div>
+      <div class="field"><span class="name">password_hash</span><span class="type">string</span></div>
+      <div class="field"><span class="name">created_at</span><span class="type">timestamp</span></div>
+      <div style="margin-top:10px;opacity:0.6;font-size:12px;">One user can belong to many workspaces. Personal workspace auto-created on signup.</div>
+    </div>
+
+    <div style="display:flex;align-items:center;padding:0 4px;opacity:0.4;font-size:20px;">⟷</div>
+
+    <div class="box green" style="flex:1.5;">
+      <h4>Entity</h4>
+      <div class="title">Workspace</div>
+      <div class="field"><span class="name">id</span><span class="type">uuid PK</span></div>
+      <div class="field"><span class="name">name</span><span class="type">string</span></div>
+      <div class="field"><span class="name">slug</span><span class="type">unique</span></div>
+      <div class="field"><span class="name">type</span><span class="type">personal | team</span></div>
+      <div class="field"><span class="name">credit_balance</span><span class="type">integer (cents)</span></div>
+      <div class="field"><span class="name">stripe_customer_id</span><span class="type">string</span></div>
+      <div style="margin-top:10px;opacity:0.6;font-size:12px;">Credits and billing live on the workspace, not the user. Team members share a credit pool.</div>
+    </div>
+
+    <div style="display:flex;align-items:center;padding:0 4px;opacity:0.4;font-size:20px;">⟷</div>
+
+    <div class="box orange" style="flex:1.2;">
+      <h4>Join Table</h4>
+      <div class="title">WorkspaceMember</div>
+      <div class="field"><span class="name">user_id</span><span class="type">FK → User</span></div>
+      <div class="field"><span class="name">workspace_id</span><span class="type">FK → Workspace</span></div>
+      <div class="field"><span class="name">role</span><span class="type">owner|admin|member</span></div>
+      <div class="field"><span class="name">joined_at</span><span class="type">timestamp</span></div>
+      <div style="margin-top:10px;opacity:0.6;font-size:12px;">Controls who can do what inside a workspace.</div>
+    </div>
+  </div>
+
+  <!-- Roles -->
+  <div class="box" style="max-width:100%;">
+    <h4>Workspace Roles (RBAC)</h4>
+    <div class="role-row">
+      <div class="role-badge">
+        <div class="rname" style="color:#f6e05e;">Owner</div>
+        <ul>
+          <li>✓ Full admin</li>
+          <li>✓ Buy credits</li>
+          <li>✓ Invite / remove members</li>
+          <li>✓ Delete workspace</li>
+          <li>✓ All product access</li>
+        </ul>
+      </div>
+      <div class="role-badge">
+        <div class="rname" style="color:#90cdf4;">Admin</div>
+        <ul>
+          <li>✓ Buy credits</li>
+          <li>✓ Invite members</li>
+          <li>✓ All product access</li>
+          <li>✗ Cannot delete workspace</li>
+          <li>✗ Cannot remove Owner</li>
+        </ul>
+      </div>
+      <div class="role-badge">
+        <div class="rname" style="color:#9ae6b4;">Member</div>
+        <ul>
+          <li>✓ All product access</li>
+          <li>✓ View credit balance</li>
+          <li>✗ Cannot buy credits</li>
+          <li>✗ Cannot invite</li>
+          <li>✗ Cannot manage workspace</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth flow -->
+  <div class="box purple">
+    <h4>Auth Flow</h4>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <div class="text">User signs up → <strong>personal workspace auto-created</strong> → JWT issued (contains user_id + active workspace_id)</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <div class="text">JWT stored in <strong>httpOnly cookie</strong> (not localStorage — prevents XSS token theft)</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <div class="text">Every API request carries the JWT → middleware resolves <strong>user + workspace + role</strong> in one DB query</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <div class="text">User can <strong>switch active workspace</strong> → new JWT issued with updated workspace_id</div>
+      </div>
+      <div class="flow-step">
+        <div class="num">5</div>
+        <div class="text">Team invites: Owner/Admin sends invite link (signed token, 48h expiry) → invitee clicks → joins workspace as Member</div>
+      </div>
+    </div>
+  </div>
+
+</div>

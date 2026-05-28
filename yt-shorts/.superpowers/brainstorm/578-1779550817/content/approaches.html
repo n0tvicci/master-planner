@@ -1,0 +1,40 @@
+<h2>3 Pipeline Architecture Approaches</h2>
+<p class="subtitle">How the pre-edit and post-edit scripts are structured internally. All 3 produce the same user experience: one command to run each phase.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Monolithic scripts</h3>
+      <p><code>pipeline.py</code> and <code>publish.py</code> each contain all logic inline — no separate tool files. Fast to build, easy to read start-to-finish.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Only 2 files to maintain</li><li>Simple to read top to bottom</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>If ElevenLabs fails mid-run, you re-run everything including the Claude API calls (costs money)</li><li>Can't test or fix one step without running the whole script</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Stage-checkpointed pipeline</h3>
+      <p><code>pipeline.py</code> tracks progress in <code>.tmp/&lt;job-id&gt;/state.json</code>. Each stage writes its output before advancing. If anything fails, re-running resumes from exactly where it stopped — no duplicate API calls.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Safe to re-run after any failure</li><li>No wasted API credits on retries</li><li>Job folder is a self-contained asset bundle</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Slightly more orchestration code</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>WAT-native decomposition (Recommended)</h3>
+      <p>Each of the 9 pre-edit steps is its own tool script in <code>tools/</code>. <code>pipeline.py</code> is a thin orchestrator that calls them in order, with checkpointing built in. <code>publish.py</code> follows the same pattern for the post-edit steps.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Matches WAT architecture you're already using</li><li>Each tool is independently testable and fixable</li><li>You can run <code>python tools/generate_voiceover.py --job abc</code> to regenerate just one asset</li><li>Errors are isolated — a bug in footage search doesn't touch script generation</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More files (~10 tool scripts vs 2)</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

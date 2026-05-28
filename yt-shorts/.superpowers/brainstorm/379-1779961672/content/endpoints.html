@@ -1,0 +1,370 @@
+<h2>YT Shorts — Full API Endpoint Map</h2>
+<p class="subtitle">All endpoints under <code>/api/yt-shorts/</code>. Per-item approval + commit pattern for multi-clip steps.</p>
+
+<style>
+* { box-sizing: border-box; }
+.ep-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ep-table th {
+  text-align: left; padding: 8px 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ep-table td { padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+.ep-table tr:last-child td { border-bottom: none; }
+.ep-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+.section-row td {
+  padding: 14px 12px 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3);
+  border-bottom: none !important;
+  background: none !important;
+}
+
+.method {
+  display: inline-block; font-family: monospace; font-weight: 700;
+  font-size: 11px; padding: 2px 7px; border-radius: 3px; min-width: 44px;
+  text-align: center;
+}
+.GET  { background: rgba(72,187,120,0.15); color: #68d391; }
+.POST { background: rgba(237,137,54,0.15); color: #f6ad55; }
+.SSE  { background: rgba(102,126,234,0.15); color: #a3b3f7; }
+
+.url { font-family: monospace; font-size: 12px; color: #e2e8f0; }
+.url .base { color: rgba(255,255,255,0.3); }
+.url .feature { color: #a3b3f7; }
+.url .param { color: #f6ad55; }
+
+.desc { color: rgba(255,255,255,0.55); font-size: 12px; }
+.note { color: rgba(255,255,255,0.3); font-size: 11px; margin-top: 2px; }
+
+.badge {
+  display: inline-block; font-size: 10px; padding: 1px 6px;
+  border-radius: 3px; font-weight: 700; white-space: nowrap;
+}
+.badge-approval { background: rgba(72,187,120,0.15); color: #68d391; }
+.badge-commit  { background: rgba(102,126,234,0.15); color: #a3b3f7; }
+.badge-regen   { background: rgba(237,137,54,0.15); color: #f6ad55; }
+.badge-core    { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
+</style>
+
+<table class="ep-table">
+  <thead>
+    <tr>
+      <th style="width:64px">Method</th>
+      <th>Endpoint</th>
+      <th>Description</th>
+      <th style="width:100px">Pattern</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- PROJECTS -->
+    <tr class="section-row"><td colspan="4">Core — Project Management</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects</td>
+      <td class="desc">Create a new video project, returns project_id</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects</td>
+      <td class="desc">List all projects with current step + status</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span></td>
+      <td class="desc">Full project state — current step, all approved items</td>
+      <td></td>
+    </tr>
+
+    <!-- TOPICS -->
+    <tr class="section-row"><td colspan="4">Step 1 — Topics</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/topics/generate</td>
+      <td class="desc">Generate 10 topic ideas via Claude</td>
+      <td><span class="badge badge-regen">regenerate</span></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/topics</td>
+      <td class="desc">List generated topics</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/topics/<span class="param">{topic_id}</span>/approve</td>
+      <td class="desc">Select one topic, advance project to script step</td>
+      <td><span class="badge badge-approval">approval</span></td>
+    </tr>
+
+    <!-- SCRIPT -->
+    <tr class="section-row"><td colspan="4">Step 2 — Script</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/script/generate</td>
+      <td class="desc">Generate full script from approved topic</td>
+      <td><span class="badge badge-regen">regenerate</span></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/script</td>
+      <td class="desc">Get current script draft</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/script/compliance</td>
+      <td class="desc">Run compliance check — advertiser scores, flags</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/script/approve</td>
+      <td class="desc">Approve script, advance to voiceover</td>
+      <td><span class="badge badge-approval">approval</span></td>
+    </tr>
+
+    <!-- VOICEOVER -->
+    <tr class="section-row"><td colspan="4">Step 3 — Voiceover</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/voiceover/generate</td>
+      <td class="desc">Generate voiceover via ElevenLabs</td>
+      <td><span class="badge badge-regen">regenerate</span></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/voiceover</td>
+      <td class="desc">Get audio file path + status</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/voiceover/approve</td>
+      <td class="desc">Approve voiceover, advance to footage search</td>
+      <td><span class="badge badge-approval">approval</span></td>
+    </tr>
+
+    <!-- FOOTAGE SEARCH -->
+    <tr class="section-row"><td colspan="4">Step 4 — Stock Footage</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/search</td>
+      <td class="desc">Search Pexels + Pixabay per script sentence</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage</td>
+      <td class="desc">List all clips with approve/reject status</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/gaps</td>
+      <td class="desc">Sentences with no matching stock footage</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/<span class="param">{clip_id}</span>/approve</td>
+      <td class="desc">Approve individual clip</td>
+      <td><span class="badge badge-approval">per-item</span></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/<span class="param">{clip_id}</span>/reject</td>
+      <td class="desc">Reject clip, triggers new search for that sentence</td>
+      <td><span class="badge badge-regen">per-item</span></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/commit</td>
+      <td class="desc">Lock all approved clips, advance to AI footage step</td>
+      <td><span class="badge badge-commit">commit</span></td>
+    </tr>
+
+    <!-- AI FOOTAGE -->
+    <tr class="section-row"><td colspan="4">Step 5 — AI Footage (gaps only)</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/ai/generate</td>
+      <td class="desc">Generate AI clips for gap sentences</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/ai</td>
+      <td class="desc">List AI-generated clips with status</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/ai/<span class="param">{clip_id}</span>/approve</td>
+      <td class="desc">Approve individual AI clip</td>
+      <td><span class="badge badge-approval">per-item</span></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/ai/<span class="param">{clip_id}</span>/regenerate</td>
+      <td class="desc">Regenerate just this one AI clip, no restart</td>
+      <td><span class="badge badge-regen">per-item</span></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/footage/ai/commit</td>
+      <td class="desc">Lock all approved AI clips, advance to music</td>
+      <td><span class="badge badge-commit">commit</span></td>
+    </tr>
+
+    <!-- MUSIC -->
+    <tr class="section-row"><td colspan="4">Step 6 — Music</td></tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/music/options</td>
+      <td class="desc">List available background tracks</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/music/<span class="param">{track_id}</span>/approve</td>
+      <td class="desc">Select track, advance to asset packaging</td>
+      <td><span class="badge badge-approval">approval</span></td>
+    </tr>
+
+    <!-- ASSETS -->
+    <tr class="section-row"><td colspan="4">Step 7 — Package Assets</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/assets/package</td>
+      <td class="desc">Bundle clips, voiceover, music into editor-ready folder</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/assets</td>
+      <td class="desc">Package status and output path</td>
+      <td></td>
+    </tr>
+
+    <!-- GATE -->
+    <tr class="section-row"><td colspan="4">Step 8 — Pre-Upload Gate  <span style="font-weight:400;color:rgba(255,255,255,0.3)">(after manual edit)</span></td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/gate/check</td>
+      <td class="desc">Run all compliance checklist items</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/gate</td>
+      <td class="desc">Gate status — passed / failed items</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/gate/approve</td>
+      <td class="desc">Human sign-off, unlocks metadata + upload</td>
+      <td><span class="badge badge-approval">approval</span></td>
+    </tr>
+
+    <!-- METADATA -->
+    <tr class="section-row"><td colspan="4">Step 9 — Metadata</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/metadata/generate</td>
+      <td class="desc">Generate title, description, tags via Claude</td>
+      <td><span class="badge badge-regen">regenerate</span></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/metadata</td>
+      <td class="desc">Current metadata draft</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/metadata/approve</td>
+      <td class="desc">Approve metadata, unlock upload</td>
+      <td><span class="badge badge-approval">approval</span></td>
+    </tr>
+
+    <!-- PUBLISH -->
+    <tr class="section-row"><td colspan="4">Step 10 — Publish</td></tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/publish/upload</td>
+      <td class="desc">Upload to YouTube with approved metadata</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method SSE">SSE</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/publish/stream</td>
+      <td class="desc">Live upload progress events</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/publish</td>
+      <td class="desc">Upload status, YouTube video_id on success</td>
+      <td></td>
+    </tr>
+
+    <!-- MONITOR -->
+    <tr class="section-row"><td colspan="4">Step 11 — Post-Upload Monitor</td></tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/monitor</td>
+      <td class="desc">Copyright check (24h) + monetization check (48h)</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/monitor/refresh</td>
+      <td class="desc">Force re-check now</td>
+      <td></td>
+    </tr>
+
+    <!-- ANALYTICS -->
+    <tr class="section-row"><td colspan="4">Step 12 — Analytics</td></tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/analytics</td>
+      <td class="desc">Views, watch time, US% share, geo breakdown</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><span class="method POST">POST</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">yt-shorts</span>/projects/<span class="param">{id}</span>/analytics/refresh</td>
+      <td class="desc">Pull latest from YouTube Analytics API</td>
+      <td></td>
+    </tr>
+
+    <!-- SHARED CORE -->
+    <tr class="section-row"><td colspan="4">Shared Core — all features</td></tr>
+    <tr>
+      <td><span class="method GET">GET</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">core</span>/jobs</td>
+      <td class="desc">List all running/completed background jobs</td>
+      <td><span class="badge badge-core">core</span></td>
+    </tr>
+    <tr>
+      <td><span class="method SSE">SSE</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">core</span>/jobs/<span class="param">{job_id}</span>/stream</td>
+      <td class="desc">Live log stream for any background job</td>
+      <td><span class="badge badge-core">core</span></td>
+    </tr>
+    <tr>
+      <td><span class="method SSE">SSE</span></td>
+      <td class="url"><span class="base">/api/</span><span class="feature">core</span>/events</td>
+      <td class="desc">Global SSE feed — step complete, approval needed, errors</td>
+      <td><span class="badge badge-core">core</span></td>
+    </tr>
+
+  </tbody>
+</table>

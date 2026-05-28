@@ -1,0 +1,157 @@
+<h2>Section 4 (Updated) — AI Automation Pipeline</h2>
+<p class="subtitle">Corrected per-product inputs &amp; outputs</p>
+
+<style>
+.box {
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+}
+.box.blue   { border-color: rgba(99,179,237,0.5);  background: rgba(99,179,237,0.07); }
+.box.green  { border-color: rgba(104,211,145,0.5); background: rgba(104,211,145,0.06); }
+.box.orange { border-color: rgba(251,191,36,0.5);  background: rgba(251,191,36,0.06); }
+.box.purple { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.06); }
+.box h4 { margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+.row { display: flex; gap: 12px; margin-bottom: 12px; }
+.pipeline-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.03); margin-bottom: 6px;
+}
+.pipeline-step .num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0; margin-top: 1px;
+}
+.pipeline-step .text { font-size: 13px; line-height: 1.65; }
+.pipeline-step .text strong { color: #90cdf4; }
+.pipeline-step .text code {
+  background: rgba(255,255,255,0.08); border-radius: 4px;
+  padding: 1px 5px; font-size: 11px;
+}
+.status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.status-badge { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.product-box {
+  flex: 1; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.product-box .pname { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.product-box .plabel { font-size: 11px; opacity: 0.45; text-transform: uppercase; letter-spacing: 0.08em; margin: 8px 0 4px; }
+.product-box ul { margin: 0; padding-left: 14px; font-size: 12px; opacity: 0.8; line-height: 1.9; }
+.product-box .note { font-size: 11px; opacity: 0.45; margin-top: 8px; font-style: italic; }
+.adapter-row { display: flex; gap: 8px; margin-top: 8px; }
+.adapter-box {
+  flex: 1; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 8px 10px;
+  font-size: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.06);
+}
+.adapter-box .aname { font-weight: 700; margin-bottom: 4px; }
+.adapter-box .providers { opacity: 0.55; font-size: 11px; line-height: 1.7; }
+</style>
+
+<!-- Job lifecycle (shared) -->
+<div class="box blue" style="margin-bottom:12px;">
+  <h4>Job Lifecycle — Shared Across All 3 Products</h4>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(99,179,237,0.3);color:#90cdf4;">1</div>
+    <div class="text">Client submits form + optional file upload → API <strong>checks + deducts credits atomically</strong> → inserts <code>job</code> row (<code>queued</code>) → enqueues to BullMQ → returns <code>job_id</code> immediately</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(99,179,237,0.3);color:#90cdf4;">2</div>
+    <div class="text">Worker picks up job → status → <code>processing</code> → <strong>provider adapter</strong> calls the active AI provider with job payload</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(104,211,145,0.3);color:#9ae6b4;">3</div>
+    <div class="text"><strong>Success:</strong> result saved (text in DB / images + videos in R2) → status → <code>completed</code> → client notified via <strong>WebSocket</strong></div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(252,129,129,0.3);color:#fc8181;">4</div>
+    <div class="text"><strong>Failure:</strong> BullMQ retries 3× with backoff → if exhausted → status <code>failed</code> → <strong>credits auto-refunded</strong> in ledger → client notified</div>
+  </div>
+  <div class="status-row">
+    <span class="status-badge" style="background:rgba(255,255,255,0.08);">queued</span>
+    <span style="opacity:0.3;">→</span>
+    <span class="status-badge" style="background:rgba(251,191,36,0.2);color:#f6e05e;">processing</span>
+    <span style="opacity:0.3;">→</span>
+    <span class="status-badge" style="background:rgba(104,211,145,0.2);color:#9ae6b4;">completed</span>
+    <span style="opacity:0.3;">or</span>
+    <span class="status-badge" style="background:rgba(252,129,129,0.2);color:#fc8181;">failed</span>
+  </div>
+</div>
+
+<!-- Per product -->
+<div class="row">
+  <div class="product-box">
+    <div class="pname">📝 Text Writer</div>
+    <div class="plabel">Input (seller provides)</div>
+    <ul>
+      <li>Product name</li>
+      <li>Basic product details</li>
+      <li>Marketplace <em>(Shopify / Amazon / Shopee)</em></li>
+    </ul>
+    <div class="plabel">Output</div>
+    <ul>
+      <li>SEO-optimized title</li>
+      <li>Product description (HTML-ready)</li>
+      <li>Bullet point highlights (×5)</li>
+    </ul>
+    <div class="note">Marketplace selection shapes the tone, length, and format rules (e.g. Amazon title limits, Shopee style)</div>
+  </div>
+
+  <div class="product-box">
+    <div class="pname">🖼️ Image Generator</div>
+    <div class="plabel">Input (seller provides)</div>
+    <ul>
+      <li>Raw product image <em>(upload)</em></li>
+      <li>Style <em>(studio / lifestyle / minimalist)</em></li>
+      <li>Background color or scene</li>
+      <li>Aspect ratio <em>(1:1 / 4:3 / 16:9)</em></li>
+    </ul>
+    <div class="plabel">Output</div>
+    <ul>
+      <li>Professional product image</li>
+      <li>Signed download URL (R2/S3)</li>
+    </ul>
+    <div class="note">Image-to-image: seller's raw photo → AI-polished product visual. No prompt engineering needed.</div>
+  </div>
+
+  <div class="product-box">
+    <div class="pname">🎬 Video Generator</div>
+    <div class="plabel">Input (seller provides)</div>
+    <ul>
+      <li>Product images <em>(1–5 uploads)</em></li>
+      <li>Motion style <em>(rotate / zoom / showcase)</em></li>
+      <li>Duration <em>(3s / 5s / 10s)</em></li>
+      <li>Target platform <em>(TikTok / Reels / YouTube)</em></li>
+    </ul>
+    <div class="plabel">Output</div>
+    <ul>
+      <li>Product video clip</li>
+      <li>Signed download URL (R2/S3)</li>
+    </ul>
+    <div class="note">Multi-image to video. Platform selection sets aspect ratio &amp; format automatically.</div>
+  </div>
+</div>
+
+<!-- Provider adapters -->
+<div class="box green">
+  <h4>Provider Adapter — Swap Providers via Config, Not Code</h4>
+  <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;">
+    <code style="color:#9ae6b4;">interface AIProvider &#123; generate(payload): Promise&lt;Result&gt; &#125;</code><br/>
+    <span style="opacity:0.6;margin-top:4px;display:block;">Each provider implements one interface. Active provider set per product via <code>ACTIVE_TEXT_PROVIDER</code>, <code>ACTIVE_IMAGE_PROVIDER</code>, <code>ACTIVE_VIDEO_PROVIDER</code> env vars.</span>
+  </div>
+  <div class="adapter-row">
+    <div class="adapter-box">
+      <div class="aname">📝 Text</div>
+      <div class="providers">OpenAI GPT-4o<br/>Anthropic Claude</div>
+    </div>
+    <div class="adapter-box">
+      <div class="aname">🖼️ Image</div>
+      <div class="providers">DALL-E 3<br/>Stability AI<br/>Ideogram</div>
+    </div>
+    <div class="adapter-box">
+      <div class="aname">🎬 Video</div>
+      <div class="providers">Runway ML<br/>Kling AI<br/>Pika Labs</div>
+    </div>
+  </div>
+</div>

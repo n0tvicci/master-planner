@@ -1,0 +1,33 @@
+<h2>Question 1 of 3: Topic Selection</h2>
+<p class="subtitle">
+  The pipeline generates 10 scored topics at Step 2. How do you want to pick which one to produce that day?
+</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Interactive terminal pick</h3>
+      <p>Pipeline pauses after generation, prints the scored list in the terminal, you type a number (1–10) to select. Production continues immediately after your pick.</p>
+      <p><strong>Best for:</strong> You want control over which topic runs today without touching any files.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Auto-select highest score</h3>
+      <p>Pipeline picks the topic with the highest US curiosity gap score automatically. Fully hands-off — you never see the list.</p>
+      <p><strong>Best for:</strong> You want to run the script and come back to a finished asset folder.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Queue-based (Recommended)</h3>
+      <p>Topics are generated and saved to a Google Sheet / local queue. You browse, approve, and mark one as "ready" at your leisure. When you run the pipeline, it picks the first "ready" topic.</p>
+      <p><strong>Best for:</strong> Building a backlog buffer so you're never scrambling for a topic. Aligns with the 30-day diversity rule — you can visually scan for topic repeats before approving.</p>
+    </div>
+  </div>
+</div>

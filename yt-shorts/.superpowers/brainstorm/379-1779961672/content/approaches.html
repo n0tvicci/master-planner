@@ -1,0 +1,163 @@
+<h2>API Structure — 3 Approaches</h2>
+<p class="subtitle">How the project_id and step endpoints relate. Pick the structure you prefer.</p>
+
+<style>
+.approaches { display: flex; gap: 16px; align-items: flex-start; }
+.approach-card {
+  flex: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.approach-card:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-2px); }
+.approach-card.selected-step { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.3); }
+.approach-card.recommended { border-color: rgba(102,126,234,0.5); }
+
+.card-header {
+  padding: 14px 16px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-header .rec-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #667eea;
+  color: white;
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+.card-a .card-header { background: rgba(102,126,234,0.2); color: #a3b3f7; }
+.card-b .card-header { background: rgba(72,187,120,0.15); color: #68d391; }
+.card-c .card-header { background: rgba(237,137,54,0.15); color: #f6ad55; }
+
+.card-body { padding: 14px 16px; }
+
+.url-block {
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.9;
+  margin-bottom: 12px;
+}
+.url-comment { color: rgba(255,255,255,0.3); font-size: 11px; }
+.url-method-post { color: #f6ad55; font-weight: 700; }
+.url-method-get { color: #68d391; font-weight: 700; }
+.url-path { color: #e2e8f0; }
+.url-project { color: #a3b3f7; }
+.url-resource { color: #fc8181; }
+
+.pros-cons-mini { display: flex; gap: 10px; font-size: 12px; margin-top: 8px; }
+.pros-mini { color: #68d391; flex: 1; }
+.cons-mini { color: #fc8181; flex: 1; }
+.pros-mini li, .cons-mini li { margin: 3px 0; list-style: none; padding-left: 12px; position: relative; }
+.pros-mini li::before { content: '+'; position: absolute; left: 0; }
+.cons-mini li::before { content: '−'; position: absolute; left: 0; }
+</style>
+
+<div class="approaches">
+
+  <!-- Approach A -->
+  <div class="approach-card card-a recommended" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-header">
+      A — Project-Scoped REST
+      <span class="rec-badge">Recommended</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;opacity:0.75;margin-bottom:10px">Everything nested under <code>/api/projects/{id}</code>. Project is the top-level resource.</p>
+      <div class="url-block">
+        <span class="url-comment"># create a video project</span><br>
+        <span class="url-method-post">POST</span> <span class="url-path">/api/</span><span class="url-project">projects</span><br><br>
+        <span class="url-comment"># topics step</span><br>
+        <span class="url-method-post">POST</span> <span class="url-path">/api/</span><span class="url-project">projects/{id}</span><span class="url-path">/topics/generate</span><br>
+        <span class="url-method-post">POST</span> <span class="url-path">/api/</span><span class="url-project">projects/{id}</span><span class="url-path">/topics/{t}/approve</span><br><br>
+        <span class="url-comment"># script step</span><br>
+        <span class="url-method-post">POST</span> <span class="url-path">/api/</span><span class="url-project">projects/{id}</span><span class="url-path">/script/generate</span><br>
+        <span class="url-method-post">POST</span> <span class="url-path">/api/</span><span class="url-project">projects/{id}</span><span class="url-path">/script/approve</span><br><br>
+        <span class="url-comment"># get full project state</span><br>
+        <span class="url-method-get">GET </span> <span class="url-path">/api/</span><span class="url-project">projects/{id}</span>
+      </div>
+      <div class="pros-cons-mini">
+        <ul class="pros-mini">
+          <li>Clear ownership</li>
+          <li>GET project = full status</li>
+          <li>Resume any step naturally</li>
+        </ul>
+        <ul class="cons-mini">
+          <li>Longer URLs</li>
+          <li>More nesting to navigate</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approach B -->
+  <div class="approach-card card-b" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-header">B — Flat + project_id in Body</div>
+    <div class="card-body">
+      <p style="font-size:13px;opacity:0.75;margin-bottom:10px">Short, flat URLs. <code>project_id</code> passed in request body or query string.</p>
+      <div class="url-block">
+        <span class="url-comment"># create a video project</span><br>
+        <span class="url-method-post">POST</span> <span class="url-path">/api/projects</span><br><br>
+        <span class="url-comment"># topics step</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/topics/generate</span><br>
+        <span style="color:rgba(255,255,255,0.3);font-size:11px">      body: {"{ project_id }"}</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/topics/{id}/approve</span><br><br>
+        <span class="url-comment"># script step</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/scripts/generate</span><br>
+        <span style="color:rgba(255,255,255,0.3);font-size:11px">      body: {"{ project_id }"}</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/scripts/{id}/approve</span><br><br>
+        <span class="url-comment"># get full project state</span><br>
+        <span class="url-method-get">GET </span> <span class="url-resource">/api/projects/{id}</span>
+      </div>
+      <div class="pros-cons-mini">
+        <ul class="pros-mini">
+          <li>Short, clean URLs</li>
+          <li>Easy to call standalone</li>
+        </ul>
+        <ul class="cons-mini">
+          <li>project_id buried in body</li>
+          <li>Less obvious ownership</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approach C -->
+  <div class="approach-card card-c" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-header">C — Hybrid (project root + flat steps)</div>
+    <div class="card-body">
+      <p style="font-size:13px;opacity:0.75;margin-bottom:10px">Project for state management. Steps are flat but scoped by query param. Utilities (music, analytics) are always flat.</p>
+      <div class="url-block">
+        <span class="url-comment"># project management</span><br>
+        <span class="url-method-post">POST</span> <span class="url-project">/api/projects</span><br>
+        <span class="url-method-get">GET </span> <span class="url-project">/api/projects/{id}/status</span><br><br>
+        <span class="url-comment"># pipeline steps (flat + ?project_id=)</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/topics/generate?project_id=</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/scripts/generate?project_id=</span><br>
+        <span class="url-method-post">POST</span> <span class="url-resource">/api/footage/search?project_id=</span><br><br>
+        <span class="url-comment"># standalone utilities (no project needed)</span><br>
+        <span class="url-method-get">GET </span> <span class="url-path">/api/music/options</span><br>
+        <span class="url-method-get">GET </span> <span class="url-path">/api/analytics/{video_id}</span>
+      </div>
+      <div class="pros-cons-mini">
+        <ul class="pros-mini">
+          <li>Flat URLs for steps</li>
+          <li>Utilities work without project</li>
+        </ul>
+        <ul class="cons-mini">
+          <li>Mixed conventions</li>
+          <li>project_id in query = awkward</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>

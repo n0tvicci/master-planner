@@ -1,0 +1,194 @@
+<h2>Section 4 — AI Automation Pipeline</h2>
+<p class="subtitle">Job lifecycle · Provider adapter · Result delivery · Per-product flow</p>
+
+<style>
+.box {
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+}
+.box.blue   { border-color: rgba(99,179,237,0.5);  background: rgba(99,179,237,0.07); }
+.box.green  { border-color: rgba(104,211,145,0.5); background: rgba(104,211,145,0.06); }
+.box.orange { border-color: rgba(251,191,36,0.5);  background: rgba(251,191,36,0.06); }
+.box.purple { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.06); }
+.box.red    { border-color: rgba(252,129,129,0.5); background: rgba(252,129,129,0.06); }
+.box h4 { margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+.row { display: flex; gap: 12px; margin-bottom: 12px; }
+.field { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
+.field:last-child { border: none; }
+.field .name { opacity: 0.85; }
+.field .type { opacity: 0.4; font-family: monospace; font-size: 11px; }
+.pipeline-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.03); margin-bottom: 6px;
+  position: relative;
+}
+.pipeline-step .num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0; margin-top: 1px;
+}
+.pipeline-step .text { font-size: 13px; line-height: 1.65; }
+.pipeline-step .text strong { color: #90cdf4; }
+.pipeline-step .text code {
+  background: rgba(255,255,255,0.08); border-radius: 4px;
+  padding: 1px 5px; font-size: 11px;
+}
+.status-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;
+}
+.status-badge {
+  padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700;
+}
+.product-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.product-box {
+  flex: 1; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.product-box .pname { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.product-box .pinput { font-size: 11px; opacity: 0.55; margin-bottom: 4px; }
+.product-box ul { margin: 0; padding-left: 14px; font-size: 12px; opacity: 0.75; line-height: 1.8; }
+.adapter-row {
+  display: flex; gap: 8px; margin-top: 4px;
+}
+.adapter-box {
+  flex: 1; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 8px 10px;
+  font-size: 12px; text-align: center;
+}
+.adapter-box .aname { font-weight: 700; margin-bottom: 4px; }
+.adapter-box .providers { opacity: 0.6; font-size: 11px; line-height: 1.7; }
+</style>
+
+<!-- Job lifecycle -->
+<div class="box blue" style="margin-bottom:12px;">
+  <h4>Job Lifecycle (all three products share this flow)</h4>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(99,179,237,0.3);color:#90cdf4;">1</div>
+    <div class="text">Client submits job via REST → API validates input, <strong>checks + deducts credits atomically</strong>, inserts <code>job</code> row with status <code>queued</code>, enqueues to BullMQ → returns <code>job_id</code> immediately (no waiting)</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(99,179,237,0.3);color:#90cdf4;">2</div>
+    <div class="text">Worker picks up job → updates status to <code>processing</code> → calls <strong>provider adapter</strong> with job payload → adapter selects configured provider and calls AI API</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(104,211,145,0.3);color:#9ae6b4;">3</div>
+    <div class="text"><strong>On success:</strong> result stored (text in DB, images/videos uploaded to R2/S3) → job status set to <code>completed</code> → result URL/data written to job row → client notified via <strong>WebSocket or SSE</strong></div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(252,129,129,0.3);color:#fc8181;">4</div>
+    <div class="text"><strong>On failure:</strong> BullMQ retries up to 3× with exponential backoff → if all retries exhausted, status set to <code>failed</code> → <strong>credit refund inserted into ledger</strong> → client notified</div>
+  </div>
+  <div class="pipeline-step">
+    <div class="num" style="background:rgba(99,179,237,0.3);color:#90cdf4;">5</div>
+    <div class="text">Client polls <code>GET /jobs/:id</code> OR listens on WebSocket channel <code>workspace:{id}</code> for real-time status updates — no page refresh needed</div>
+  </div>
+
+  <div class="status-row" style="margin-top:12px;">
+    <span class="status-badge" style="background:rgba(255,255,255,0.08);">queued</span>
+    <span style="opacity:0.3;">→</span>
+    <span class="status-badge" style="background:rgba(251,191,36,0.2);color:#f6e05e;">processing</span>
+    <span style="opacity:0.3;">→</span>
+    <span class="status-badge" style="background:rgba(104,211,145,0.2);color:#9ae6b4;">completed</span>
+    <span style="opacity:0.3;">or</span>
+    <span class="status-badge" style="background:rgba(252,129,129,0.2);color:#fc8181;">failed</span>
+  </div>
+</div>
+
+<!-- DB: jobs table -->
+<div class="row">
+  <div class="box" style="flex:1;">
+    <h4>DB: jobs table</h4>
+    <div class="field"><span class="name">id</span><span class="type">uuid PK</span></div>
+    <div class="field"><span class="name">workspace_id</span><span class="type">FK</span></div>
+    <div class="field"><span class="name">user_id</span><span class="type">FK (who submitted)</span></div>
+    <div class="field"><span class="name">type</span><span class="type">text | image | video</span></div>
+    <div class="field"><span class="name">status</span><span class="type">queued|processing|completed|failed</span></div>
+    <div class="field"><span class="name">input_payload</span><span class="type">jsonb</span></div>
+    <div class="field"><span class="name">result_payload</span><span class="type">jsonb (nullable)</span></div>
+    <div class="field"><span class="name">provider_used</span><span class="type">string</span></div>
+    <div class="field"><span class="name">credits_charged</span><span class="type">integer</span></div>
+    <div class="field"><span class="name">error_message</span><span class="type">text (nullable)</span></div>
+    <div class="field"><span class="name">created_at / completed_at</span><span class="type">timestamps</span></div>
+  </div>
+
+  <!-- Provider adapter -->
+  <div class="box green" style="flex:2;">
+    <h4>Provider Adapter Pattern — swap AI providers via config, not code</h4>
+    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;">
+      <code style="color:#9ae6b4;">interface AIProvider { generate(payload): Promise&lt;Result&gt; }</code><br/>
+      <span style="opacity:0.6;">Each provider implements the same interface. Workers only call the interface — never the provider directly. Active provider set per product via environment config.</span>
+    </div>
+    <div class="adapter-row">
+      <div class="adapter-box">
+        <div class="aname">📝 Text Adapter</div>
+        <div class="providers">OpenAI GPT-4o<br/>Anthropic Claude<br/>+ others</div>
+      </div>
+      <div class="adapter-box">
+        <div class="aname">🖼️ Image Adapter</div>
+        <div class="providers">DALL-E 3<br/>Stability AI<br/>Ideogram</div>
+      </div>
+      <div class="adapter-box">
+        <div class="aname">🎬 Video Adapter</div>
+        <div class="providers">Runway ML<br/>Kling AI<br/>Pika Labs</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Per-product inputs -->
+<div class="box orange">
+  <h4>Per-Product Job Inputs &amp; Outputs</h4>
+  <div class="product-row">
+    <div class="product-box">
+      <div class="pname">📝 Text Writer</div>
+      <div class="pinput">Input:</div>
+      <ul>
+        <li>Product name</li>
+        <li>Category</li>
+        <li>Key features (bullet list)</li>
+        <li>Tone (professional / fun / luxury)</li>
+        <li>Target platform (Amazon / Shopify / Etsy)</li>
+      </ul>
+      <div class="pinput" style="margin-top:8px;">Output:</div>
+      <ul>
+        <li>SEO title (≤80 chars)</li>
+        <li>Product description (HTML-ready)</li>
+        <li>Bullet points (x5)</li>
+      </ul>
+    </div>
+    <div class="product-box">
+      <div class="pname">🖼️ Image Generator</div>
+      <div class="pinput">Input:</div>
+      <ul>
+        <li>Product name</li>
+        <li>Style (studio / lifestyle / minimalist)</li>
+        <li>Background color / scene</li>
+        <li>Reference image (optional upload)</li>
+        <li>Aspect ratio (1:1 / 4:3 / 16:9)</li>
+      </ul>
+      <div class="pinput" style="margin-top:8px;">Output:</div>
+      <ul>
+        <li>Generated image URL (R2/S3)</li>
+        <li>Download link (signed URL)</li>
+      </ul>
+    </div>
+    <div class="product-box">
+      <div class="pname">🎬 Video Generator</div>
+      <div class="pinput">Input:</div>
+      <ul>
+        <li>Product name</li>
+        <li>Source image (upload or from Image module)</li>
+        <li>Motion style (rotate / zoom / showcase)</li>
+        <li>Duration (3s / 5s / 10s)</li>
+        <li>Platform (TikTok / Reels / YouTube)</li>
+      </ul>
+      <div class="pinput" style="margin-top:8px;">Output:</div>
+      <ul>
+        <li>Video URL (R2/S3)</li>
+        <li>Download link (signed URL)</li>
+      </ul>
+    </div>
+  </div>
+</div>

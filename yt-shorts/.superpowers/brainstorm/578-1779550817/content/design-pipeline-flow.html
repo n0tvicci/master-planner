@@ -1,0 +1,67 @@
+<h2>Design Section 1: Pipeline Flow</h2>
+<p class="subtitle">Two entry points. One job ID ties everything together across both runs.</p>
+
+<div class="section">
+  <h3>Phase 1 — Pre-Edit &nbsp;<code>python pipeline.py</code></h3>
+  <div class="mockup">
+    <div class="mockup-header">pipeline.py — orchestrates 8 tool scripts in sequence</div>
+    <div class="mockup-body">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="border-bottom:1px solid #333">
+          <th style="text-align:left;padding:6px 8px;color:#888">Step</th>
+          <th style="text-align:left;padding:6px 8px;color:#888">Tool Script</th>
+          <th style="text-align:left;padding:6px 8px;color:#888">Output</th>
+          <th style="text-align:left;padding:6px 8px;color:#888">Checkpoint</th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">1</td><td style="padding:6px 8px"><code>generate_topics.py</code></td><td style="padding:6px 8px">Appends 20 topics → <code>topics/queue.json</code></td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222;background:#1a1a1a"><td style="padding:6px 8px" colspan="4" style="padding:6px 8px;color:#f59e0b">⏸ &nbsp;You set status → <code>"approved"</code> in queue.json, then re-run pipeline.py</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">2</td><td style="padding:6px 8px"><code>generate_script.py</code></td><td style="padding:6px 8px">Full script + scores + footage queries → <code>scripts/&lt;job-id&gt;/</code></td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">3</td><td style="padding:6px 8px"><code>check_compliance.py</code></td><td style="padding:6px 8px">PASS or REVISION REQUIRED (auto-halts on fail)</td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">4</td><td style="padding:6px 8px"><code>generate_voiceover.py</code></td><td style="padding:6px 8px">MP3 → <code>voiceover/&lt;job-id&gt;/</code></td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">5</td><td style="padding:6px 8px"><code>search_footage.py</code></td><td style="padding:6px 8px">Downloads clips → <code>footage/&lt;job-id&gt;/</code> (Pexels + Pixabay, concurrent)</td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">6</td><td style="padding:6px 8px"><code>clear_footage.py</code></td><td style="padding:6px 8px">Strips audio from every clip via ffmpeg, logs clearance</td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">7</td><td style="padding:6px 8px"><code>check_footage_gaps.py</code></td><td style="padding:6px 8px">Writes <code>assets/&lt;job-id&gt;/footage-gaps.md</code> with Runway ML prompts</td><td style="padding:6px 8px">✅ state saved</td></tr>
+          <tr style="border-bottom:1px solid #222;background:#1a1a1a"><td style="padding:6px 8px" colspan="4">⏸ &nbsp;<span style="color:#f59e0b">If gaps exist:</span> go generate clips in Runway, drop <code>.mp4</code> files into <code>footage/&lt;job-id&gt;/gaps/</code>, re-run pipeline.py</td></tr>
+          <tr><td style="padding:6px 8px">8</td><td style="padding:6px 8px"><code>package_assets.py</code></td><td style="padding:6px 8px">Assembles full asset bundle → <code>assets/&lt;job-id&gt;/</code>, prints edit checklist</td><td style="padding:6px 8px">✅ DONE</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>Phase 2 — Post-Edit &nbsp;<code>python publish.py --job &lt;job-id&gt;</code></h3>
+  <div class="mockup">
+    <div class="mockup-header">publish.py — orchestrates 4 tool scripts, requires exported video in output/ folder</div>
+    <div class="mockup-body">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="border-bottom:1px solid #333">
+          <th style="text-align:left;padding:6px 8px;color:#888">Step</th>
+          <th style="text-align:left;padding:6px 8px;color:#888">Tool Script</th>
+          <th style="text-align:left;padding:6px 8px;color:#888">Output</th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">1</td><td style="padding:6px 8px"><code>pre_upload_gate.py</code></td><td style="padding:6px 8px">Validates compliance checklist — halts if anything is unresolved</td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">2</td><td style="padding:6px 8px"><code>generate_metadata.py</code></td><td style="padding:6px 8px">Claude API → title, description, tags → <code>metadata/&lt;job-id&gt;/</code></td></tr>
+          <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px">3</td><td style="padding:6px 8px"><code>upload_youtube.py</code></td><td style="padding:6px 8px">YouTube Data API v3 → public upload with AI disclosure, posts pinned comment</td></tr>
+          <tr><td style="padding:6px 8px">4</td><td style="padding:6px 8px"><code>monitor_upload.py</code></td><td style="padding:6px 8px">Prints monitoring reminder card — 24h copyright, 48h monetization, 72h analytics</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;padding:12px;background:#0f1a0f;border:1px solid #1a3a1a;border-radius:6px">
+  <h3 style="color:#4ade80;margin-top:0">💡 Key improvements over your instruction.md</h3>
+  <ul style="font-size:13px;line-height:1.8">
+    <li><strong>Job ID system</strong> — every run gets an ID (e.g. <code>20260523-snipers-laser</code>) so all assets, script, voiceover, and metadata stay grouped and <code>publish.py</code> knows exactly which video to upload</li>
+    <li><strong>Resume on failure</strong> — state.json checkpoint means a failed ElevenLabs call doesn't re-run Claude API (saves money)</li>
+    <li><strong>Concurrent footage search</strong> — Pexels + Pixabay queried in parallel per sentence, cuts footage step from ~5 min to ~1 min</li>
+    <li><strong>ffmpeg audio strip is automated</strong> — no manual step, every downloaded clip is cleaned before packaging</li>
+    <li><strong>Runway gap report is pre-written</strong> — each gap entry includes the exact Runway prompt from your script, so you paste and go</li>
+    <li><strong>Weekly topic batch mode</strong> — <code>pipeline.py --topics-only</code> generates 20 topics at once and queues them, so your daily run never starts cold</li>
+  </ul>
+</div>
+
+<p style="margin-top:16px;color:#888;font-size:13px">Does this pipeline flow look right? Any steps to add, remove, or change order on?</p>

@@ -1,0 +1,42 @@
+<h2>3 Architecture Approaches</h2>
+<p class="subtitle">Pick the one that fits your goals — scalability, speed-to-demo, and AWS readiness</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Simple Monolith</h3>
+      <p>One Express app handles everything — auth, billing, all three AI products — backed by a single PostgreSQL database. Synchronous API calls to AI providers.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Fastest to build and demo</li><li>Easy to reason about</li><li>Zero infra complexity</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>AI calls block HTTP threads (video = minutes)</li><li>Hard to scale individual products</li><li>Poor UX for slow generations</li><li>AWS migration is messy later</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B ⭐ Recommended</div>
+    <div class="content">
+      <h3>Modular Monolith + Job Queue</h3>
+      <p>One Express app organized into clean modules (auth, billing, text, image, video) with a Redis + BullMQ job queue for async AI generation. Jobs run in background workers, clients poll for results.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Non-blocking UX — video jobs run in background</li><li>Modular structure = clean AWS migration (modules → Lambda/ECS)</li><li>BullMQ → SQS is a 1:1 swap on AWS</li><li>Retry logic built into queue</li><li>Still simple enough for a solo/small team</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Redis adds one more service to run locally</li><li>Slightly more code to wire up jobs vs. direct calls</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Microservices from Day 1</h3>
+      <p>Separate services: API Gateway → Auth Service, Billing Service, Text Service, Image Service, Video Service. Each deploys independently. Message bus (RabbitMQ/Kafka) for inter-service communication.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Maximum scalability</li><li>Services deploy independently</li><li>Already AWS-native in structure</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Over-engineered for current team size</li><li>3–5× more code and infra to set up</li><li>Distributed tracing, service discovery, network errors</li><li>Wrong for a demo stage</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

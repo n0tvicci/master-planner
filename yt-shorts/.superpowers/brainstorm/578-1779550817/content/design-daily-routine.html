@@ -1,0 +1,89 @@
+<h2>Design Section 2: Daily Routine</h2>
+<p class="subtitle">Your full working day from cold start to published video. Total active time: ~35–45 minutes.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Daily Workflow — On-Demand (run whenever you're ready)</div>
+  <div class="mockup-body">
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#f59e0b;font-weight:bold;font-size:13px;padding-top:2px">ONCE/WEEK</div>
+        <div style="flex:1;background:#1a1a2e;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Top up the topic queue</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Run <code>python pipeline.py --topics-only</code> → Claude generates 20 topics, appends to <code>topics/queue.json</code>. Open the file, find topics you like, set their status to <code>"approved"</code>. Takes ~5 min. You'll always have a week's worth of approved topics ready.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#60a5fa;font-weight:bold;font-size:13px;padding-top:2px">STEP 1<br><span style="font-weight:normal;color:#888">~1 min</span></div>
+        <div style="flex:1;background:#0f1520;border-left:3px solid #60a5fa;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Run the pre-edit pipeline</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa"><code>python pipeline.py</code></p>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Picks the first approved topic from queue, generates script, checks compliance, creates voiceover, searches and downloads footage, strips audio, detects gaps. Runs fully unattended once started.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#60a5fa;font-weight:bold;font-size:13px;padding-top:2px">WAIT<br><span style="font-weight:normal;color:#888">~5–8 min</span></div>
+        <div style="flex:1;background:#0f1520;border-left:3px solid #334;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Pipeline runs automatically</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Go make coffee. The script prints progress to terminal. You'll see a final asset summary when it's done.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#a78bfa;font-weight:bold;font-size:13px;padding-top:2px">STEP 2<br><span style="font-weight:normal;color:#888">0–5 min</span></div>
+        <div style="flex:1;background:#150f20;border-left:3px solid #a78bfa;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Fill Runway gaps (if any)</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Check <code>assets/&lt;job-id&gt;/footage-gaps.md</code>. If the file is empty — skip this step entirely. If gaps exist, open Runway ML, paste each pre-written prompt, download the clip, drop it in <code>footage/&lt;job-id&gt;/gaps/</code>, then re-run <code>python pipeline.py</code> to finalize packaging.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#34d399;font-weight:bold;font-size:13px;padding-top:2px">STEP 3<br><span style="font-weight:normal;color:#888">~15 min</span></div>
+        <div style="flex:1;background:#0a1a12;border-left:3px solid #34d399;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Edit in CapCut</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Open <code>assets/&lt;job-id&gt;/</code> — all clips are numbered, audio-stripped, and ready. Voiceover and script are in the same folder. Follow the 7-step CapCut assembly from your instruction.md. Export to <code>output/&lt;job-id&gt;/</code>.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#f87171;font-weight:bold;font-size:13px;padding-top:2px">STEP 4<br><span style="font-weight:normal;color:#888">~2 min</span></div>
+        <div style="flex:1;background:#1a0f0f;border-left:3px solid #f87171;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Run the publish pipeline</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa"><code>python publish.py --job &lt;job-id&gt;</code></p>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Runs pre-upload gate, generates metadata (title, description, tags, pinned comment), uploads to YouTube with AI disclosure enabled. Prints a monitoring card with 24h / 48h / 72h checkpoints.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="min-width:90px;text-align:right;color:#888;font-weight:bold;font-size:13px;padding-top:2px">DONE</div>
+        <div style="flex:1;background:#111;border-left:3px solid #333;padding:10px 14px;border-radius:0 6px 6px 0">
+          <strong>Video is live</strong>
+          <p style="margin:4px 0 0;font-size:13px;color:#aaa">Check back in 24h for copyright status, 48h for monetization, 72h for country distribution. The monitoring card tells you exactly what to look for.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+  <div style="background:#111;border:1px solid #222;border-radius:6px;padding:12px">
+    <h4 style="margin:0 0 8px;color:#f59e0b">Time breakdown</h4>
+    <ul style="margin:0;padding-left:16px;line-height:2">
+      <li>Pipeline run: ~5–8 min (unattended)</li>
+      <li>Runway gaps: 0–5 min (usually 0)</li>
+      <li>CapCut editing: ~15 min</li>
+      <li>Publish run: ~2 min</li>
+      <li><strong>Total active time: 17–25 min</strong></li>
+    </ul>
+  </div>
+  <div style="background:#111;border:1px solid #222;border-radius:6px;padding:12px">
+    <h4 style="margin:0 0 8px;color:#60a5fa">Skip days are zero-guilt</h4>
+    <p style="margin:0;line-height:1.6;color:#aaa">Because you run on-demand, a missed day is just a missed day — no scheduled jobs fail, no queues back up. The approved topic queue means you're never blocked by a "what do I make today" decision.</p>
+  </div>
+</div>
+
+<p style="margin-top:16px;color:#888;font-size:13px">Does this daily routine match how you want to work?</p>

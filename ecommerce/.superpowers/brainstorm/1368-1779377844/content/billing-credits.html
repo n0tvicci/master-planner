@@ -1,0 +1,157 @@
+<h2>Section 3 — Credit System &amp; Billing</h2>
+<p class="subtitle">How credit packs are purchased, tracked per workspace, and consumed per AI job</p>
+
+<style>
+.box {
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+}
+.box.blue   { border-color: rgba(99,179,237,0.5);  background: rgba(99,179,237,0.07); }
+.box.green  { border-color: rgba(104,211,145,0.5); background: rgba(104,211,145,0.06); }
+.box.orange { border-color: rgba(251,191,36,0.5);  background: rgba(251,191,36,0.06); }
+.box.purple { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.06); }
+.box.red    { border-color: rgba(252,129,129,0.5); background: rgba(252,129,129,0.06); }
+.box h4 { margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+.box .title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.row { display: flex; gap: 12px; margin-bottom: 12px; }
+.field { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
+.field:last-child { border: none; }
+.field .name { opacity: 0.85; }
+.field .type { opacity: 0.4; font-family: monospace; font-size: 11px; }
+.pack-card {
+  flex: 1; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px;
+  text-align: center; border: 1.5px solid rgba(255,255,255,0.08);
+}
+.pack-card .price { font-size: 22px; font-weight: 800; color: #90cdf4; }
+.pack-card .credits { font-size: 13px; opacity: 0.7; margin: 4px 0 8px; }
+.pack-card .items { font-size: 11px; opacity: 0.6; text-align: left; padding-left: 12px; }
+.cost-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
+  margin-bottom: 6px; font-size: 13px;
+}
+.cost-row .product { font-weight: 600; }
+.cost-row .credits-cost { color: #f6e05e; font-weight: 700; }
+.cost-row .ai-cost { opacity: 0.45; font-size: 11px; font-family: monospace; }
+.flow-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.flow-step .num {
+  background: rgba(104,211,145,0.3); color: #9ae6b4;
+  border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; flex-shrink: 0; margin-top: 1px;
+}
+.flow-step .text { font-size: 13px; line-height: 1.6; }
+.flow-step .text strong { color: #9ae6b4; }
+.warn { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-top: 8px; }
+</style>
+
+<!-- Credit Packs -->
+<div class="row">
+  <div class="box green" style="flex:2.5;">
+    <h4>Credit Pack Pricing (Example — you tune these)</h4>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+      <div class="pack-card">
+        <div class="price">$10</div>
+        <div class="credits">500 credits</div>
+        <ul class="items">
+          <li>~50 text generations</li>
+          <li>~25 images</li>
+          <li>~5 short videos</li>
+        </ul>
+      </div>
+      <div class="pack-card" style="border-color:rgba(99,179,237,0.4);">
+        <div class="price" style="color:#f6e05e;">$25</div>
+        <div class="credits">1,500 credits <span style="color:#9ae6b4;font-size:11px;">(+20%)</span></div>
+        <ul class="items">
+          <li>~150 text generations</li>
+          <li>~75 images</li>
+          <li>~15 short videos</li>
+        </ul>
+      </div>
+      <div class="pack-card">
+        <div class="price">$50</div>
+        <div class="credits">3,500 credits <span style="color:#9ae6b4;font-size:11px;">(+40%)</span></div>
+        <ul class="items">
+          <li>~350 text generations</li>
+          <li>~175 images</li>
+          <li>~35 short videos</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:10px;opacity:0.5;font-size:11px;">Packs stored in DB — you can add/edit without code changes</div>
+  </div>
+
+  <div class="box orange" style="flex:1.5;">
+    <h4>Per-Job Credit Cost</h4>
+    <div class="cost-row">
+      <span class="product">📝 Text (title + desc)</span>
+      <span>
+        <span class="credits-cost">10 cr</span>
+        <span class="ai-cost"> ~$0.01</span>
+      </span>
+    </div>
+    <div class="cost-row">
+      <span class="product">🖼️ Image (1 image)</span>
+      <span>
+        <span class="credits-cost">20 cr</span>
+        <span class="ai-cost"> ~$0.04</span>
+      </span>
+    </div>
+    <div class="cost-row">
+      <span class="product">🎬 Video (5s clip)</span>
+      <span>
+        <span class="credits-cost">100 cr</span>
+        <span class="ai-cost"> ~$0.25</span>
+      </span>
+    </div>
+    <div style="margin-top:10px;opacity:0.55;font-size:11px;">Your markup: ~2–3× AI cost. Tune to your actual provider pricing.</div>
+  </div>
+</div>
+
+<!-- Credit Ledger DB schema -->
+<div class="row">
+  <div class="box blue" style="flex:1;">
+    <h4>DB: credit_ledger (append-only log)</h4>
+    <div class="field"><span class="name">id</span><span class="type">uuid PK</span></div>
+    <div class="field"><span class="name">workspace_id</span><span class="type">FK → Workspace</span></div>
+    <div class="field"><span class="name">user_id</span><span class="type">FK → User (who triggered)</span></div>
+    <div class="field"><span class="name">type</span><span class="type">purchase | consumption | refund</span></div>
+    <div class="field"><span class="name">amount</span><span class="type">integer (+/-)</span></div>
+    <div class="field"><span class="name">job_id</span><span class="type">FK → job (nullable)</span></div>
+    <div class="field"><span class="name">stripe_payment_id</span><span class="type">nullable</span></div>
+    <div class="field"><span class="name">created_at</span><span class="type">timestamp</span></div>
+    <div style="margin-top:8px;opacity:0.55;font-size:11px;">Never update rows — only insert. Balance = SUM(amount) for workspace. Full audit trail.</div>
+  </div>
+
+  <div class="box purple" style="flex:1.5;">
+    <h4>Purchase + Consumption Flow</h4>
+    <div class="flow-step">
+      <div class="num">1</div>
+      <div class="text">Owner/Admin selects a credit pack → <strong>Stripe Checkout session created</strong> server-side</div>
+    </div>
+    <div class="flow-step">
+      <div class="num">2</div>
+      <div class="text">Stripe redirects back → <strong>webhook fires</strong> <code>checkout.session.completed</code> → credits inserted into ledger</div>
+    </div>
+    <div class="flow-step">
+      <div class="num">3</div>
+      <div class="text">User submits a job → API <strong>checks balance atomically</strong> (DB transaction) → deducts credits + enqueues job in one operation</div>
+    </div>
+    <div class="flow-step">
+      <div class="num">4</div>
+      <div class="text">If job <strong>fails</strong> after deduction → refund entry inserted into ledger automatically</div>
+    </div>
+    <div class="flow-step">
+      <div class="num">5</div>
+      <div class="text">Credit balance displayed in real-time on dashboard — workspace-wide, visible to all members</div>
+    </div>
+
+    <div class="warn">⚠️ <strong>Atomic deduction rule:</strong> Credits are deducted and job enqueued in a single DB transaction. If either fails, both roll back. No double-spend, no free jobs.</div>
+  </div>
+</div>

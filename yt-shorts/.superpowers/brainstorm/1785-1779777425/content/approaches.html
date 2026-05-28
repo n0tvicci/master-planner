@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontend Approach Comparison</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; padding: 32px 24px; }
+
+  h1 { font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 32px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  .card {
+    background: #1e2533;
+    border: 1px solid #2d3748;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card.recommended { border-color: #4f79ff; }
+
+  .card-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid #2d3748;
+  }
+  .card-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .option-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #2d3748;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+  }
+  .recommended .option-badge {
+    background: #4f79ff22;
+    color: #4f79ff;
+  }
+  .rec-tag {
+    font-size: 10px;
+    font-weight: 700;
+    color: #4f79ff;
+    background: #4f79ff15;
+    border: 1px solid #4f79ff40;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .card-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .card-desc { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  .mockup {
+    padding: 14px;
+    background: #161b27;
+    flex: 1;
+  }
+
+  /* ——— Approach A: Sidebar Nav ——— */
+  .mock-a { display: flex; height: 200px; border-radius: 8px; overflow: hidden; border: 1px solid #2d3748; }
+  .mock-sidebar {
+    width: 120px;
+    background: #1a1f2e;
+    border-right: 1px solid #2d3748;
+    padding: 10px 0;
+    flex-shrink: 0;
+  }
+  .mock-logo { padding: 4px 12px 12px; font-size: 10px; font-weight: 800; color: #4f79ff; letter-spacing: 1px; }
+  .mock-nav-item {
+    padding: 7px 12px;
+    font-size: 10px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .mock-nav-item.active { color: #f1f5f9; background: #4f79ff18; border-left: 2px solid #4f79ff; }
+  .mock-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .mock-main { flex: 1; padding: 12px; overflow: hidden; }
+  .mock-page-title { font-size: 11px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }
+  .mock-topic-card {
+    background: #1e2533;
+    border: 1px solid #2d3748;
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mock-topic-text { font-size: 9px; color: #cbd5e1; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mock-topic-score { font-size: 9px; color: #22c55e; font-weight: 700; }
+  .mock-btns { display: flex; gap: 4px; }
+  .mock-btn-approve { background: #22c55e20; border: 1px solid #22c55e50; color: #22c55e; border-radius: 3px; padding: 2px 6px; font-size: 8px; font-weight: 600; }
+  .mock-btn-reject { background: #ef444420; border: 1px solid #ef444450; color: #ef4444; border-radius: 3px; padding: 2px 6px; font-size: 8px; font-weight: 600; }
+
+  /* ——— Approach B: Dashboard ——— */
+  .mock-b { height: 200px; border-radius: 8px; overflow: hidden; border: 1px solid #2d3748; background: #1a1f2e; padding: 10px; }
+  .mock-db-header { font-size: 10px; font-weight: 700; color: #4f79ff; margin-bottom: 8px; letter-spacing: 0.5px; }
+  .mock-db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; height: calc(100% - 24px); }
+  .mock-db-panel {
+    background: #1e2533;
+    border: 1px solid #2d3748;
+    border-radius: 6px;
+    padding: 8px;
+    overflow: hidden;
+  }
+  .mock-db-panel-title { font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .mock-db-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .mock-db-label { font-size: 8px; color: #94a3b8; }
+  .mock-db-val { font-size: 8px; color: #22c55e; font-weight: 600; }
+  .mock-db-val.yellow { color: #f59e0b; }
+  .mock-db-val.blue { color: #4f79ff; }
+  .mock-db-bar { height: 3px; background: #2d3748; border-radius: 2px; margin-bottom: 5px; }
+  .mock-db-bar-fill { height: 100%; border-radius: 2px; background: #4f79ff; }
+  .mock-db-tiny { font-size: 7px; color: #475569; }
+  .mock-db-step { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+  .mock-db-step-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ——— Approach C: Wizard ——— */
+  .mock-c { height: 200px; border-radius: 8px; overflow: hidden; border: 1px solid #2d3748; background: #1a1f2e; display: flex; flex-direction: column; }
+  .mock-steps { display: flex; padding: 10px 10px 0; gap: 0; }
+  .mock-step { flex: 1; display: flex; align-items: center; flex-direction: column; position: relative; }
+  .mock-step-circle {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; z-index: 1;
+    background: #2d3748; color: #64748b;
+  }
+  .mock-step-circle.done { background: #22c55e; color: #fff; }
+  .mock-step-circle.active { background: #4f79ff; color: #fff; }
+  .mock-step-label { font-size: 7px; color: #64748b; margin-top: 3px; text-align: center; }
+  .mock-step-label.active { color: #94a3b8; }
+  .mock-step-line {
+    position: absolute;
+    top: 10px; left: calc(50% + 10px);
+    width: calc(100% - 20px);
+    height: 1px;
+    background: #2d3748;
+  }
+  .mock-step-line.done { background: #22c55e50; }
+  .mock-wiz-content { flex: 1; padding: 10px; }
+  .mock-wiz-title { font-size: 10px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+  .mock-wiz-body { font-size: 8px; color: #64748b; line-height: 1.5; margin-bottom: 8px; }
+  .mock-wiz-footer { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-top: 1px solid #2d3748; }
+  .mock-wiz-btn-back { font-size: 8px; color: #64748b; padding: 4px 8px; border: 1px solid #2d3748; border-radius: 4px; }
+  .mock-wiz-btn-next { font-size: 8px; color: #fff; background: #4f79ff; padding: 4px 10px; border-radius: 4px; font-weight: 600; }
+
+  /* pros/cons */
+  .pros-cons { padding: 14px 18px; border-top: 1px solid #1a1f2e; }
+  .pro-con-row { display: flex; gap: 12px; }
+  .pros, .cons { flex: 1; }
+  .pros-title { font-size: 10px; font-weight: 700; color: #22c55e; margin-bottom: 5px; }
+  .cons-title { font-size: 10px; font-weight: 700; color: #f59e0b; margin-bottom: 5px; }
+  .pro-item, .con-item { font-size: 10px; color: #94a3b8; margin-bottom: 3px; display: flex; gap: 4px; }
+  .pro-item::before { content: '✓'; color: #22c55e; flex-shrink: 0; }
+  .con-item::before { content: '·'; color: #f59e0b; flex-shrink: 0; }
+</style>
+</head>
+<body>
+  <h1>Frontend Architecture — 3 Approaches</h1>
+  <p class="subtitle">Choose the layout that fits how you'll actually use the workflow</p>
+
+  <div class="grid">
+
+    <!-- ——— APPROACH A ——— -->
+    <div class="card recommended">
+      <div class="card-header">
+        <div class="card-label">
+          <span class="option-badge">A</span>
+          <span class="rec-tag">RECOMMENDED</span>
+        </div>
+        <div class="card-title">Sidebar Navigation</div>
+        <div class="card-desc">4 focused pages, navigate freely by workflow phase</div>
+      </div>
+      <div class="mockup">
+        <div class="mock-a">
+          <div class="mock-sidebar">
+            <div class="mock-logo">SHORTS</div>
+            <div class="mock-nav-item active"><span class="mock-nav-dot"></span>Topics</div>
+            <div class="mock-nav-item"><span class="mock-nav-dot"></span>Pipeline</div>
+            <div class="mock-nav-item"><span class="mock-nav-dot"></span>Publish</div>
+            <div class="mock-nav-item"><span class="mock-nav-dot"></span>Analytics</div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-page-title">Topic Queue (3 pending)</div>
+            <div class="mock-topic-card">
+              <div>
+                <div class="mock-topic-text">AK-47 vs M16 — Myths</div>
+                <div class="mock-topic-score">Score 9/10 · Tier 1</div>
+              </div>
+              <div class="mock-btns">
+                <div class="mock-btn-approve">✓ Approve</div>
+                <div class="mock-btn-reject">✕</div>
+              </div>
+            </div>
+            <div class="mock-topic-card">
+              <div>
+                <div class="mock-topic-text">Bulletproof Vests — How?</div>
+                <div class="mock-topic-score">Score 7/10 · Tier 2</div>
+              </div>
+              <div class="mock-btns">
+                <div class="mock-btn-approve">✓ Approve</div>
+                <div class="mock-btn-reject">✕</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pro-con-row">
+          <div class="pros">
+            <div class="pros-title">Pros</div>
+            <div class="pro-item">Focused — one page per phase</div>
+            <div class="pro-item">Jump directly to any step</div>
+            <div class="pro-item">Scales as features grow</div>
+          </div>
+          <div class="cons">
+            <div class="cons-title">Cons</div>
+            <div class="con-item">Page switches mid-workflow</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ——— APPROACH B ——— -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-label">
+          <span class="option-badge">B</span>
+        </div>
+        <div class="card-title">Command Center</div>
+        <div class="card-desc">Single dashboard, all panels visible at once</div>
+      </div>
+      <div class="mockup">
+        <div class="mock-b">
+          <div class="mock-db-header">YT SHORTS DASHBOARD</div>
+          <div class="mock-db-grid">
+            <div class="mock-db-panel">
+              <div class="mock-db-panel-title">Topic Queue</div>
+              <div class="mock-db-row"><span class="mock-db-label">AK-47 vs M16</span><span class="mock-db-val">9/10</span></div>
+              <div class="mock-db-row"><span class="mock-db-label">Bulletproof Vest</span><span class="mock-db-val yellow">7/10</span></div>
+              <div class="mock-db-row"><span class="mock-db-label">Sniper Myths</span><span class="mock-db-val">8/10</span></div>
+            </div>
+            <div class="mock-db-panel">
+              <div class="mock-db-panel-title">Active Pipeline</div>
+              <div class="mock-db-step"><div class="mock-db-step-dot" style="background:#22c55e"></div><span class="mock-db-tiny" style="color:#22c55e">Script ✓</span></div>
+              <div class="mock-db-step"><div class="mock-db-step-dot" style="background:#4f79ff"></div><span class="mock-db-tiny" style="color:#94a3b8">Footage — 12/22</span></div>
+              <div class="mock-db-step"><div class="mock-db-step-dot" style="background:#2d3748"></div><span class="mock-db-tiny">Voiceover</span></div>
+              <div class="mock-db-step"><div class="mock-db-step-dot" style="background:#2d3748"></div><span class="mock-db-tiny">Package</span></div>
+            </div>
+            <div class="mock-db-panel">
+              <div class="mock-db-panel-title">Publish</div>
+              <div class="mock-db-row"><span class="mock-db-label">Next window</span><span class="mock-db-val blue">Thu 7 AM</span></div>
+              <div class="mock-db-row"><span class="mock-db-label">Gate status</span><span class="mock-db-val">PASS</span></div>
+              <div class="mock-db-tiny" style="margin-top:4px">Last: AK-47 video · 2d ago</div>
+            </div>
+            <div class="mock-db-panel">
+              <div class="mock-db-panel-title">Analytics</div>
+              <div class="mock-db-row"><span class="mock-db-label">US Share</span><span class="mock-db-val">62%</span></div>
+              <div class="mock-db-bar"><div class="mock-db-bar-fill" style="width:62%"></div></div>
+              <div class="mock-db-tiny">🟢 GREEN — Target exceeded</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pro-con-row">
+          <div class="pros">
+            <div class="pros-title">Pros</div>
+            <div class="pro-item">Everything visible at once</div>
+            <div class="pro-item">Great for monitoring</div>
+          </div>
+          <div class="cons">
+            <div class="cons-title">Cons</div>
+            <div class="con-item">Cramped — each panel tiny</div>
+            <div class="con-item">Hard to take actions</div>
+            <div class="con-item">Complex to build well</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ——— APPROACH C ——— -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-label">
+          <span class="option-badge">C</span>
+        </div>
+        <div class="card-title">Guided Wizard</div>
+        <div class="card-desc">Step-through flow matching the daily routine</div>
+      </div>
+      <div class="mockup">
+        <div class="mock-c">
+          <div class="mock-steps">
+            <div class="mock-step">
+              <div class="mock-step-circle done">1</div>
+              <div class="mock-step-label active">Topics</div>
+              <div class="mock-step-line done"></div>
+            </div>
+            <div class="mock-step">
+              <div class="mock-step-circle active">2</div>
+              <div class="mock-step-label active">Pipeline</div>
+              <div class="mock-step-line"></div>
+            </div>
+            <div class="mock-step">
+              <div class="mock-step-circle">3</div>
+              <div class="mock-step-label">Edit</div>
+              <div class="mock-step-line"></div>
+            </div>
+            <div class="mock-step">
+              <div class="mock-step-circle">4</div>
+              <div class="mock-step-label">Publish</div>
+            </div>
+          </div>
+          <div class="mock-wiz-content">
+            <div class="mock-wiz-title">Step 2: Run Pipeline</div>
+            <div class="mock-wiz-body">
+              Topic "AK-47 vs M16" is queued. The pipeline will generate script, voiceover, footage, and asset bundle (~5–8 min).
+            </div>
+            <div style="background:#4f79ff15;border:1px solid #4f79ff30;border-radius:5px;padding:6px 8px;font-size:8px;color:#94a3b8;">
+              ▶ Run Pipeline
+            </div>
+          </div>
+          <div class="mock-wiz-footer">
+            <div class="mock-wiz-btn-back">← Back</div>
+            <div class="mock-wiz-btn-next">Next →</div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pro-con-row">
+          <div class="pros">
+            <div class="pros-title">Pros</div>
+            <div class="pro-item">Impossible to skip steps</div>
+            <div class="pro-item">Low cognitive load</div>
+          </div>
+          <div class="cons">
+            <div class="cons-title">Cons</div>
+            <div class="con-item">Can't jump out of order</div>
+            <div class="con-item">Feels rigid once learned</div>
+            <div class="con-item">Awkward for re-runs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

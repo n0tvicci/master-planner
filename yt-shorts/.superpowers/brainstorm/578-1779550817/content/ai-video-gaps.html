@@ -1,0 +1,35 @@
+<h2>Question 2 of 3: AI Video Generation Gaps</h2>
+<p class="subtitle">
+  Step 8 of your pipeline covers AI video generation when no stock footage exists.
+  Kling / Runway / Pika don't have reliable public APIs yet.
+  How should the pipeline handle footage gaps?
+</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Gap report + manual generation (Recommended)</h3>
+      <p>Pipeline automatically writes a <code>footage-gaps.md</code> file with the exact Kling / Runway prompts pre-written from your script. You open the tool, paste the prompt, download the clip, and drop it in the assets folder. Pipeline detects it and continues.</p>
+      <p><strong>Best for:</strong> Reliability. AI video tools change APIs constantly — keeping this step manual avoids breakage. The prompt is already written so it takes under 2 minutes.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Placeholder flag — handle during editing</h3>
+      <p>Pipeline marks missing clips as <code>[GAP: prompt here]</code> in the asset manifest. You decide during CapCut editing whether to generate AI video or substitute a different stock clip.</p>
+      <p><strong>Best for:</strong> Fastest pipeline run. You make the call at edit time.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Kling API integration (beta)</h3>
+      <p>Attempt automated Kling API calls for missing clips. The pipeline blocks until generation completes and downloads the result.</p>
+      <p><strong>Best for:</strong> Fully automated. <strong>Risk:</strong> Kling's API is in beta, rate-limited, and costs credits unpredictably — one bad run can burn budget.</p>
+    </div>
+  </div>
+</div>

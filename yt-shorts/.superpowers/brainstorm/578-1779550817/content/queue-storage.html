@@ -1,0 +1,34 @@
+<h2>Question 3 of 3: Topic Queue Storage</h2>
+<p class="subtitle">
+  You chose queue-based topic selection. Where should the queue live?
+  This is where you'll browse, approve topics, and mark one "ready" before each pipeline run.
+</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Google Sheets (Recommended)</h3>
+      <p>Topics are written to a shared Google Sheet with columns: Title, Misconception, US Score, Status (pending / approved / used). You flip Status to "approved" from any device — phone, tablet, or desktop — before running the pipeline.</p>
+      <p><strong>Best for:</strong> Reviewing and approving topics anywhere. You can also spot topic diversity violations visually. Aligns with your CLAUDE.md principle that deliverables live in cloud services.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Local JSON / CSV file</h3>
+      <p>Topics are written to <code>topics/queue.json</code>. You edit the file locally to approve a topic before running the pipeline. Simple, no auth required.</p>
+      <p><strong>Best for:</strong> Simplest setup. Works offline. Downside: you have to be at your desk to approve topics.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Both — local file synced to Google Sheets</h3>
+      <p>Pipeline writes to local JSON as primary storage and mirrors the queue to Google Sheets for remote visibility. Approvals in Sheets are synced back on next pipeline run.</p>
+      <p><strong>Best for:</strong> Resilience — works offline and remote. More complex setup, but no single point of failure.</p>
+    </div>
+  </div>
+</div>

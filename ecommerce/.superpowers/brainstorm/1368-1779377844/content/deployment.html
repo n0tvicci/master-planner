@@ -1,0 +1,223 @@
+<h2>Section 5 — Deployment Architecture</h2>
+<p class="subtitle">Demo stack (now) → Production AWS stack (future) — same code, different infra</p>
+
+<style>
+.box {
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+}
+.box.blue   { border-color: rgba(99,179,237,0.5);  background: rgba(99,179,237,0.07); }
+.box.green  { border-color: rgba(104,211,145,0.5); background: rgba(104,211,145,0.06); }
+.box.orange { border-color: rgba(251,191,36,0.5);  background: rgba(251,191,36,0.06); }
+.box.purple { border-color: rgba(167,139,250,0.5); background: rgba(167,139,250,0.06); }
+.box.red    { border-color: rgba(252,129,129,0.5); background: rgba(252,129,129,0.06); }
+.box h4 { margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.55; }
+.row { display: flex; gap: 12px; margin-bottom: 12px; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.service-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.04); border-radius: 8px; padding: 9px 12px;
+}
+.service-row .icon { font-size: 18px; flex-shrink: 0; }
+.service-row .info { flex: 1; }
+.service-row .info .sname { font-weight: 700; font-size: 13px; }
+.service-row .info .sdesc { font-size: 11px; opacity: 0.55; margin-top: 2px; }
+.service-row .arrow-target { font-size: 11px; color: #90cdf4; opacity: 0.7; flex-shrink: 0; text-align: right; }
+.divider { text-align: center; font-size: 22px; opacity: 0.25; margin: 4px 0; }
+.migrate-row {
+  display: flex; align-items: stretch; gap: 10px;
+  background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.migrate-row .from { flex: 1; font-size: 12px; opacity: 0.6; }
+.migrate-row .arr { padding: 0 8px; opacity: 0.3; font-size: 16px; display: flex; align-items: center; }
+.migrate-row .to { flex: 1; font-size: 12px; color: #90cdf4; font-weight: 600; }
+.migrate-row .effort {
+  font-size: 10px; padding: 2px 8px; border-radius: 99px; align-self: center;
+  font-weight: 700; flex-shrink: 0;
+}
+.effort.easy { background: rgba(104,211,145,0.2); color: #9ae6b4; }
+.effort.med  { background: rgba(251,191,36,0.2);  color: #f6e05e; }
+.phase-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 3px 10px; border-radius: 99px; margin-right: 6px;
+}
+</style>
+
+<div class="row">
+  <!-- Demo Stack -->
+  <div class="col">
+    <div class="box blue">
+      <h4><span class="phase-badge" style="background:rgba(99,179,237,0.2);color:#90cdf4;">PHASE 1</span> Demo Stack — Today</h4>
+
+      <div class="service-row">
+        <div class="icon">⚡</div>
+        <div class="info">
+          <div class="sname">Vercel</div>
+          <div class="sdesc">React Vite SPA · zero-config deploy · free tier works for demo</div>
+        </div>
+        <div class="arrow-target">→ CloudFront + S3</div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🚂</div>
+        <div class="info">
+          <div class="sname">Railway — Express API</div>
+          <div class="sdesc">Node.js/Express monolith · $5/mo hobby tier · auto-deploys from git</div>
+        </div>
+        <div class="arrow-target">→ ECS / App Runner</div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🔴</div>
+        <div class="info">
+          <div class="sname">Railway — Redis</div>
+          <div class="sdesc">BullMQ job queue + session cache · managed Redis on Railway</div>
+        </div>
+        <div class="arrow-target">→ ElastiCache</div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🗄️</div>
+        <div class="info">
+          <div class="sname">Railway — PostgreSQL</div>
+          <div class="sdesc">Primary DB · users, jobs, credits, Stripe events</div>
+        </div>
+        <div class="arrow-target">→ RDS (Postgres)</div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🪣</div>
+        <div class="info">
+          <div class="sname">Cloudflare R2</div>
+          <div class="sdesc">Generated images + videos · free egress · S3-compatible API</div>
+        </div>
+        <div class="arrow-target">→ AWS S3</div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">💳</div>
+        <div class="info">
+          <div class="sname">Stripe</div>
+          <div class="sdesc">Credit pack checkout + webhooks · stays the same on AWS</div>
+        </div>
+        <div class="arrow-target">stays same</div>
+      </div>
+
+      <div style="margin-top:12px;background:rgba(99,179,237,0.07);border-radius:8px;padding:10px;font-size:12px;opacity:0.8;">
+        💰 <strong>Estimated demo cost: ~$5–15/mo</strong> (Railway hobby + free Vercel + free R2 tier)
+      </div>
+    </div>
+  </div>
+
+  <!-- AWS Stack -->
+  <div class="col">
+    <div class="box green">
+      <h4><span class="phase-badge" style="background:rgba(104,211,145,0.2);color:#9ae6b4;">PHASE 2</span> AWS Production Stack</h4>
+
+      <div class="service-row">
+        <div class="icon">🌐</div>
+        <div class="info">
+          <div class="sname">CloudFront + S3</div>
+          <div class="sdesc">React SPA served from S3 via CloudFront CDN · global edge delivery</div>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🐳</div>
+        <div class="info">
+          <div class="sname">ECS Fargate — API</div>
+          <div class="sdesc">Containerized Express API · auto-scales on CPU/memory · ALB in front</div>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🐳</div>
+        <div class="info">
+          <div class="sname">ECS Fargate — Workers</div>
+          <div class="sdesc">BullMQ workers in separate containers · scale text/image/video workers independently</div>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🗃️</div>
+        <div class="info">
+          <div class="sname">SQS (optional upgrade)</div>
+          <div class="sdesc">Replace BullMQ queues with SQS for AWS-native durability + dead-letter queues</div>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🔴</div>
+        <div class="info">
+          <div class="sname">ElastiCache (Redis)</div>
+          <div class="sdesc">Managed Redis cluster · same BullMQ code, different connection string</div>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🗄️</div>
+        <div class="info">
+          <div class="sname">RDS PostgreSQL</div>
+          <div class="sdesc">Multi-AZ for prod · automated backups · same schema, no migration needed</div>
+        </div>
+      </div>
+
+      <div class="service-row">
+        <div class="icon">🔐</div>
+        <div class="info">
+          <div class="sname">AWS Secrets Manager</div>
+          <div class="sdesc">Store AI provider API keys + Stripe keys securely · injected at runtime</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;background:rgba(104,211,145,0.07);border-radius:8px;padding:10px;font-size:12px;opacity:0.8;">
+        💰 <strong>Estimated AWS cost: ~$80–150/mo</strong> at small scale · scales with usage
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Migration effort table -->
+<div class="box orange">
+  <h4>Migration Effort — Demo → AWS (no rewrites required)</h4>
+  <div class="migrate-row">
+    <div class="from">Vercel SPA</div>
+    <div class="arr">→</div>
+    <div class="to">Build React app → upload to S3 → CloudFront distribution</div>
+    <div class="effort easy">Easy</div>
+  </div>
+  <div class="migrate-row">
+    <div class="from">Railway Express API</div>
+    <div class="arr">→</div>
+    <div class="to">Dockerize app → push to ECR → ECS Fargate service + ALB</div>
+    <div class="effort med">Medium</div>
+  </div>
+  <div class="migrate-row">
+    <div class="from">Railway Redis</div>
+    <div class="arr">→</div>
+    <div class="to">Point <code>REDIS_URL</code> env var to ElastiCache endpoint — zero code change</div>
+    <div class="effort easy">Easy</div>
+  </div>
+  <div class="migrate-row">
+    <div class="from">Railway PostgreSQL</div>
+    <div class="arr">→</div>
+    <div class="to">pg_dump → restore to RDS · update <code>DATABASE_URL</code> env var</div>
+    <div class="effort easy">Easy</div>
+  </div>
+  <div class="migrate-row">
+    <div class="from">Cloudflare R2</div>
+    <div class="arr">→</div>
+    <div class="to">Update <code>STORAGE_BUCKET</code> + AWS credentials — S3-compatible, same SDK</div>
+    <div class="effort easy">Easy</div>
+  </div>
+  <div class="migrate-row">
+    <div class="from">Env vars (API keys)</div>
+    <div class="arr">→</div>
+    <div class="to">Move to AWS Secrets Manager → inject via ECS task definition</div>
+    <div class="effort easy">Easy</div>
+  </div>
+  <div style="margin-top:10px;opacity:0.55;font-size:12px;">⚡ The only Medium-effort step is containerizing the Express app. Everything else is a config/connection-string swap.</div>
+</div>

@@ -1,0 +1,87 @@
+<h2>Design Section 3: File Structure & Tool Scripts</h2>
+<p class="subtitle">Every file that will exist in this project and what it does.</p>
+
+<div class="section">
+  <h3>Orchestrators (you run these)</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="font-size:13px">
+      <table style="width:100%;border-collapse:collapse">
+        <tr style="border-bottom:1px solid #222"><td style="padding:6px 8px;color:#60a5fa;font-family:monospace">pipeline.py</td><td style="padding:6px 8px;color:#aaa">Pre-edit orchestrator. Flags: <code>--topics-only</code> (generate queue only), <code>--job &lt;id&gt;</code> (resume specific job)</td></tr>
+        <tr><td style="padding:6px 8px;color:#60a5fa;font-family:monospace">publish.py</td><td style="padding:6px 8px;color:#aaa">Post-edit orchestrator. Flags: <code>--job &lt;id&gt;</code> (required), <code>--dry-run</code> (preview metadata without uploading)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>Tool Scripts (<code>tools/</code>)</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="font-size:13px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:6px 8px;color:#888">Script</th><th style="text-align:left;padding:6px 8px;color:#888">API Used</th><th style="text-align:left;padding:6px 8px;color:#888">Input → Output</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">generate_topics.py</td><td style="padding:6px 8px">Claude API</td><td style="padding:6px 8px;color:#aaa">none → appends 20 topics to <code>topics/queue.json</code></td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">generate_script.py</td><td style="padding:6px 8px">Claude API</td><td style="padding:6px 8px;color:#aaa">topic → <code>scripts/&lt;job-id&gt;/script.json</code> (script + scores + footage queries)</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">check_compliance.py</td><td style="padding:6px 8px">none</td><td style="padding:6px 8px;color:#aaa">script.json → PASS or halts with revision instructions</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">generate_voiceover.py</td><td style="padding:6px 8px">ElevenLabs API</td><td style="padding:6px 8px;color:#aaa">script text → <code>voiceover/&lt;job-id&gt;/voiceover.mp3</code></td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">search_footage.py</td><td style="padding:6px 8px">Pexels + Pixabay</td><td style="padding:6px 8px;color:#aaa">footage queries → downloads clips to <code>footage/&lt;job-id&gt;/</code> (concurrent per sentence)</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">clear_footage.py</td><td style="padding:6px 8px">ffmpeg (local)</td><td style="padding:6px 8px;color:#aaa">raw clips → audio-stripped clips + <code>compliance-logs/&lt;job-id&gt;/clearance.json</code></td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">check_footage_gaps.py</td><td style="padding:6px 8px">none</td><td style="padding:6px 8px;color:#aaa">clips + script → <code>assets/&lt;job-id&gt;/footage-gaps.md</code> (Runway ML prompts)</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#34d399">package_assets.py</td><td style="padding:6px 8px">none</td><td style="padding:6px 8px;color:#aaa">all job outputs → numbered asset bundle in <code>assets/&lt;job-id&gt;/</code> + edit checklist printed</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#a78bfa">pre_upload_gate.py</td><td style="padding:6px 8px">none</td><td style="padding:6px 8px;color:#aaa">job state → compliance checklist validation, halts on failure</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#a78bfa">generate_metadata.py</td><td style="padding:6px 8px">Claude API</td><td style="padding:6px 8px;color:#aaa">script → <code>metadata/&lt;job-id&gt;/metadata.json</code> (title, description, tags, pinned comment)</td></tr>
+          <tr style="border-bottom:1px solid #1a1a1a"><td style="padding:6px 8px;font-family:monospace;color:#a78bfa">upload_youtube.py</td><td style="padding:6px 8px">YouTube Data API v3</td><td style="padding:6px 8px;color:#aaa">video file + metadata → live upload with AI disclosure + pinned comment posted</td></tr>
+          <tr><td style="padding:6px 8px;font-family:monospace;color:#a78bfa">monitor_upload.py</td><td style="padding:6px 8px">none</td><td style="padding:6px 8px;color:#aaa">job id → prints monitoring reminder card (24h/48h/72h checklist)</td></tr>
+        </tbody>
+      </table>
+      <p style="margin:8px 0 0;color:#888;font-size:12px"><span style="color:#34d399">■</span> pre-edit &nbsp;&nbsp;<span style="color:#a78bfa">■</span> post-edit</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>Folder Structure</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="font-family:monospace;font-size:13px;line-height:1.9;color:#ccc">
+      <pre style="margin:0;background:none">yt-shorts/
+├── pipeline.py               ← run this for pre-edit
+├── publish.py                ← run this for post-edit
+├── tools/                    ← 12 tool scripts (above)
+├── workflows/                ← markdown SOPs (one per tool)
+├── topics/
+│   └── queue.json            ← topic backlog, you edit status here
+├── scripts/
+│   └── &lt;job-id&gt;/
+│       └── script.json
+├── voiceover/
+│   └── &lt;job-id&gt;/
+│       └── voiceover.mp3
+├── footage/
+│   └── &lt;job-id&gt;/
+│       ├── clip_01.mp4       ← audio-stripped
+│       └── gaps/             ← drop Runway clips here
+├── assets/
+│   └── &lt;job-id&gt;/            ← open this folder in CapCut
+│       ├── 01_clip.mp4
+│       ├── voiceover.mp3
+│       ├── script.txt        ← reference while editing
+│       ├── overlays.txt      ← keyword list for text overlays
+│       └── footage-gaps.md   ← Runway prompts (empty = no gaps)
+├── output/
+│   └── &lt;job-id&gt;/
+│       └── final.mp4         ← your exported CapCut video goes here
+├── metadata/
+│   └── &lt;job-id&gt;/
+│       └── metadata.json
+├── compliance-logs/
+│   └── &lt;job-id&gt;/
+│       └── clearance.json
+├── .tmp/
+│   └── &lt;job-id&gt;/
+│       └── state.json        ← checkpoint file for resume-on-failure
+└── .env                      ← API keys</pre>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;color:#888;font-size:13px">Does this structure look right? Any folders or files to add or rename?</p>
