@@ -1,15 +1,11 @@
-import { createContext, useContext, useState } from "react";
-import type { ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface ProjectContextValue {
   projectId: string | null;
   setProjectId: (id: string | null) => void;
 }
 
-const ProjectContext = createContext<ProjectContextValue>({
-  projectId: null,
-  setProjectId: () => {},
-});
+const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -21,5 +17,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 }
 
 export function useProject() {
-  return useContext(ProjectContext);
+  const ctx = useContext(ProjectContext);
+  if (!ctx) throw new Error("useProject must be used inside ProjectProvider");
+  return ctx;
 }

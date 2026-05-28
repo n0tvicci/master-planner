@@ -15,6 +15,7 @@ export async function apiFetch<T>(
   return response.json() as Promise<T>;
 }
 
-export function createSSEStream(path: string): EventSource {
-  return new EventSource(`${BASE_URL}${path}`);
+export function createSSEStream(path: string): [EventSource, () => void] {
+  const es = new EventSource(`${BASE_URL}${path}`);
+  return [es, () => es.close()];
 }
