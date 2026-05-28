@@ -13,6 +13,7 @@ def _initial_state(title: str) -> dict:
     return {
         "title": title,
         "current_step": ProjectStep.TOPICS,
+        "topics": [],
         "approved_topic": None,
         "script_draft": None,
         "compliance_report": None,

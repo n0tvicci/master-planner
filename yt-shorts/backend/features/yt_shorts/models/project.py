@@ -31,7 +31,7 @@ class Project(BaseModel):
     current_step: ProjectStep
     created_at: datetime
     updated_at: datetime
-    # Step outputs — populated as project advances
+    topics: list[dict] = []
     approved_topic: Optional[dict] = None
     script_draft: Optional[dict] = None
     compliance_report: Optional[dict] = None
