@@ -2,10 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import Paper from '@mui/material/Paper'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
-import Chip from '@mui/material/Chip'
 import TextField from '@mui/material/TextField'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { usePublishContext } from '../store/PublishContext'
@@ -16,6 +14,7 @@ import LogPanel from '../components/LogPanel'
 import ErrorAlert from '../components/ErrorAlert'
 import SectionLabel from '../components/SectionLabel'
 import { getAxiosErrorMessage } from '../utils/errors'
+import { IZK } from '../theme'
 import type { Metadata, UploadWindow } from '../types'
 
 export default function PublishPage() {
@@ -34,7 +33,6 @@ export default function PublishPage() {
     return () => clearInterval(id)
   }, [])
 
-  // Auto-fill job ID from the last pipeline run when the field is empty
   useEffect(() => {
     if (activeJobId && !jobId) setJobId(activeJobId)
   }, [activeJobId])
@@ -69,70 +67,119 @@ export default function PublishPage() {
     : '...'
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" fontWeight={700}>Publish</Typography>
-        <Button variant="outlined" size="small" disabled={!jobId || uploading}
-          onClick={() => jobId && publishApi.upload(jobId, true).catch(() => {})}>Dry Run</Button>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Topbar */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 3, py: '14px', borderBottom: '1px solid', borderColor: IZK.subtleBorder,
+        bgcolor: 'background.paper', flexShrink: 0,
+      }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: 'text.secondary' }}>
+          Publish
+        </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!jobId || uploading}
+          onClick={() => jobId && publishApi.upload(jobId, true).catch(() => {})}
+        >
+          Dry Run
+        </Button>
       </Box>
 
-      <TextField label="Job ID" size="small" value={jobId ?? ''} placeholder="job-20260526-143021"
-        onChange={e => handleJobChange(e.target.value)} sx={{ mb: 2, width: 300 }} />
+      {/* Content */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+        <TextField
+          label="Job ID"
+          size="small"
+          value={jobId ?? ''}
+          placeholder="job-20260526-143021"
+          onChange={e => handleJobChange(e.target.value)}
+          sx={{ mb: 2, width: 300 }}
+        />
 
-      <ErrorAlert error={error} onClose={() => setError(null)} />
+        <ErrorAlert error={error} onClose={() => setError(null)} />
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-        <Box>
-          <SectionLabel>Pre-Upload Checklist</SectionLabel>
-          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-            {gateItems.map((item, i) => (
-              <Box key={i} sx={{ borderBottom: i < gateItems.length - 1 ? '1px solid' : 'none', borderColor: 'divider', py: 0.5 }}>
-                <FormControlLabel control={<Checkbox size="small" checked={checks[i]} onChange={() => toggleCheck(i)} />}
-                  label={<Typography variant="body2">{item}</Typography>} />
-              </Box>
-            ))}
-          </Paper>
-
-          {window_ && (
-            <Alert severity={window_.in_window ? 'success' : 'warning'} sx={{ mb: 2 }}>
-              {window_.in_window ? 'In optimal upload window now' : `Next window: ${nextWindowStr}`}
-            </Alert>
-          )}
-
-          <Button variant="contained" size="large" startIcon={<RocketLaunchIcon />}
-            disabled={!allChecked || uploading || !jobId} onClick={handleUpload}
-            sx={{ background: 'linear-gradient(135deg, #4f79ff, #7c3aed)' }}>
-            {uploading ? 'Uploading...' : 'Upload to YouTube'}
-          </Button>
-          {!allChecked && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            Complete checklist to enable upload
-          </Typography>}
-        </Box>
-
-        <Box>
-          <SectionLabel>Metadata Preview</SectionLabel>
-          {metadata ? (
-            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-              <Typography variant="caption" color="text.secondary">Title</Typography>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>{metadata.title}</Typography>
-              <Typography variant="caption" color="text.secondary">Description</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: 11 }}>{metadata.description}</Typography>
-              <Typography variant="caption" color="text.secondary">Tags</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 1.5 }}>
-                {metadata.tags.map(tag => <Chip key={tag} label={tag} size="small" />)}
-              </Box>
-              <Typography variant="caption" color="text.secondary">Pinned Comment</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11 }}>{metadata.pinned_comment}</Typography>
-            </Paper>
-          ) : (
-            <Typography variant="body2" color="text.secondary">Enter a job ID to preview metadata.</Typography>
-          )}
-          {logLines.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <SectionLabel>Upload Log</SectionLabel>
-              <LogPanel lines={logLines} height={180} />
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+          <Box>
+            <SectionLabel>Pre-Upload Checklist</SectionLabel>
+            <Box sx={{ bgcolor: IZK.card, border: '1px solid', borderColor: IZK.subtleBorder, p: 1.5, mb: 2 }}>
+              {gateItems.map((item, i) => (
+                <Box key={i} sx={{
+                  borderBottom: i < gateItems.length - 1 ? '1px solid' : 'none',
+                  borderColor: IZK.subtleBorder, py: 0.5,
+                }}>
+                  <FormControlLabel
+                    control={<Checkbox size="small" checked={checks[i]} onChange={() => toggleCheck(i)} />}
+                    label={<Typography sx={{ fontSize: 12, color: checks[i] ? 'text.primary' : IZK.muted }}>{item}</Typography>}
+                  />
+                </Box>
+              ))}
             </Box>
-          )}
+
+            {window_ && (
+              <Box sx={{
+                p: '10px 14px', mb: 2,
+                bgcolor: IZK.card,
+                border: '1px solid',
+                borderColor: window_.in_window ? '#2d6a4f40' : '#d4a01740',
+                borderLeft: '2px solid',
+                borderLeftColor: window_.in_window ? '#2d6a4f' : '#d4a017',
+              }}>
+                <Typography sx={{ fontSize: 12, color: window_.in_window ? '#2d6a4f' : '#d4a017' }}>
+                  {window_.in_window ? '● In optimal upload window now' : `Next window: ${nextWindowStr}`}
+                </Typography>
+              </Box>
+            )}
+
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<RocketLaunchIcon />}
+              disabled={!allChecked || uploading || !jobId}
+              onClick={handleUpload}
+            >
+              {uploading ? 'Uploading...' : 'Upload to YouTube'}
+            </Button>
+            {!allChecked && (
+              <Typography sx={{ fontSize: 11, color: IZK.dim, display: 'block', mt: 1 }}>
+                Complete checklist to enable upload
+              </Typography>
+            )}
+          </Box>
+
+          <Box>
+            <SectionLabel>Metadata Preview</SectionLabel>
+            {metadata ? (
+              <Box sx={{ bgcolor: IZK.card, border: '1px solid', borderColor: IZK.subtleBorder, p: 2, mb: 2 }}>
+                <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '2px', textTransform: 'uppercase', mb: 0.5 }}>Title</Typography>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.primary', mb: 2 }}>{metadata.title}</Typography>
+
+                <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '2px', textTransform: 'uppercase', mb: 0.5 }}>Description</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 2, lineHeight: 1.6 }}>{metadata.description}</Typography>
+
+                <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '2px', textTransform: 'uppercase', mb: 0.75 }}>Tags</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                  {metadata.tags.map(tag => (
+                    <Box key={tag} sx={{ fontSize: 9, letterSpacing: '1px', color: IZK.muted, border: '1px solid #2a2040', px: 1, py: 0.25 }}>
+                      {tag}
+                    </Box>
+                  ))}
+                </Box>
+
+                <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '2px', textTransform: 'uppercase', mb: 0.5 }}>Pinned Comment</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.6 }}>{metadata.pinned_comment}</Typography>
+              </Box>
+            ) : (
+              <Typography sx={{ fontSize: 12, color: IZK.muted }}>Enter a job ID to preview metadata.</Typography>
+            )}
+            {logLines.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <SectionLabel>Upload Log</SectionLabel>
+                <LogPanel lines={logLines} height={180} />
+              </Box>
+            )}
+          </Box>
         </Box>
       </Box>
     </Box>

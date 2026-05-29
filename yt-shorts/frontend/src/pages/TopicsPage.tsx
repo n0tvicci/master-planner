@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
-import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import TopicCard from '../components/TopicCard'
 import ErrorAlert from '../components/ErrorAlert'
 import SectionLabel from '../components/SectionLabel'
 import { topicsApi } from '../api/topics'
+import { IZK } from '../theme'
 import type { Topic } from '../types'
 
 export default function TopicsPage() {
@@ -54,9 +54,7 @@ export default function TopicsPage() {
           if (timeoutRef.current) clearTimeout(timeoutRef.current)
           setGenerating(false)
         }
-      } catch {
-        // ignore poll errors, timeout will clean up
-      }
+      } catch { /* ignore poll errors */ }
     }, 2000)
     timeoutRef.current = setTimeout(() => {
       if (pollRef.current) clearInterval(pollRef.current)
@@ -74,38 +72,74 @@ export default function TopicsPage() {
     catch { setError('Failed to reject topic') }
   }
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}><CircularProgress /></Box>
+  if (loading) return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
+      <CircularProgress size={24} />
+    </Box>
+  )
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" fontWeight={700}>Topics</Typography>
-        <Button variant="contained" startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <AddIcon />}
-          disabled={generating} onClick={handleGenerate}>
-          {generating ? 'Generating...' : 'Generate Topics'}
-        </Button>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Topbar */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 3, py: '14px', borderBottom: '1px solid', borderColor: IZK.subtleBorder,
+        bgcolor: 'background.paper', flexShrink: 0,
+      }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: 'text.secondary' }}>
+          Topics
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {pending.length > 0 && (
+            <Box sx={{ fontSize: 9, letterSpacing: '1px', color: '#ff6b3560', bgcolor: '#ff6b3510', border: '1px solid #ff6b3520', px: 1, py: 0.25 }}>
+              {pending.length} PENDING
+            </Box>
+          )}
+          <Button
+            variant="contained"
+            startIcon={generating ? <CircularProgress size={12} sx={{ color: '#0e0b14' }} /> : <AddIcon />}
+            disabled={generating}
+            onClick={handleGenerate}
+          >
+            {generating ? 'Generating...' : 'Generate Topics'}
+          </Button>
+        </Box>
       </Box>
 
-      <ErrorAlert error={error} onClose={() => setError(null)} />
+      {/* Content */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+        <ErrorAlert error={error} onClose={() => setError(null)} />
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 3 }}>
-        <Box>
-          <SectionLabel>Pending Approval ({pending.length})</SectionLabel>
-          {pending.length === 0
-            ? <Typography variant="body2" color="text.secondary">No pending topics. Click Generate to create new ones.</Typography>
-            : pending.map(t => <TopicCard key={t.id} topic={t} onApprove={handleApprove} onReject={handleReject} />)
-          }
-        </Box>
-        <Box>
-          <SectionLabel>Approved Queue ({queue.length})</SectionLabel>
-          {queue.map((t, i) => (
-            <Paper key={t.id ?? i} variant="outlined" sx={{ p: 1.5, mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Typography variant="caption" color="primary.main" fontWeight={700} sx={{ minWidth: 16 }}>{i + 1}</Typography>
-              <Typography variant="body2" noWrap sx={{ flex: 1 }}>{t.title}</Typography>
-              {t.tier_score && <Typography variant="caption" color="text.secondary">Score {t.tier_score}</Typography>}
-            </Paper>
-          ))}
-          {queue.length === 0 && <Typography variant="body2" color="text.secondary">No approved topics yet.</Typography>}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 3 }}>
+          <Box>
+            <SectionLabel>Pending Approval ({pending.length})</SectionLabel>
+            {pending.length === 0
+              ? <Typography sx={{ fontSize: 12, color: IZK.muted }}>No pending topics. Click Generate to create new ones.</Typography>
+              : pending.map(t => <TopicCard key={t.id} topic={t} onApprove={handleApprove} onReject={handleReject} />)
+            }
+          </Box>
+
+          <Box>
+            <SectionLabel>Approved Queue ({queue.length})</SectionLabel>
+            {queue.map((t, i) => (
+              <Box key={t.id ?? i} sx={{
+                display: 'flex', alignItems: 'center', gap: 1.5,
+                p: '10px 12px', mb: 0.5,
+                bgcolor: IZK.card, border: '1px solid', borderColor: IZK.subtleBorder,
+              }}>
+                <Typography sx={{ fontSize: 10, color: 'primary.main', fontWeight: 700, minWidth: 16 }}>{i + 1}</Typography>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', flex: 1 }} noWrap>{t.title}</Typography>
+                {t.tier_score && (
+                  <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '1px' }}>
+                    {t.tier_score}/10
+                  </Typography>
+                )}
+              </Box>
+            ))}
+            {queue.length === 0 && (
+              <Typography sx={{ fontSize: 12, color: IZK.muted }}>No approved topics yet.</Typography>
+            )}
+          </Box>
         </Box>
       </Box>
     </Box>
