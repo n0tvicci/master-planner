@@ -3,21 +3,16 @@ import Box from '@mui/material/Box'
 import Drawer from '@mui/material/Drawer'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
-import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
-import ListAltIcon from '@mui/icons-material/ListAlt'
-import BoltIcon from '@mui/icons-material/Bolt'
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
-import BarChartIcon from '@mui/icons-material/BarChart'
+import { IZK } from '../theme'
 
-const W = 192
+const W = 200
 const NAV = [
-  { label: 'Topics', path: '/', Icon: ListAltIcon },
-  { label: 'Pipeline', path: '/pipeline', Icon: BoltIcon },
-  { label: 'Publish', path: '/publish', Icon: RocketLaunchIcon },
-  { label: 'Analytics', path: '/analytics', Icon: BarChartIcon },
+  { label: 'Topics', path: '/' },
+  { label: 'Pipeline', path: '/pipeline' },
+  { label: 'Publish', path: '/publish' },
+  { label: 'Analytics', path: '/analytics' },
 ]
 
 export default function AppShell() {
@@ -28,18 +23,23 @@ export default function AppShell() {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       <Drawer
         variant="permanent"
-        sx={{
-          width: W, flexShrink: 0,
-          '& .MuiDrawer-paper': { width: W, bgcolor: '#1a1f2e', borderRight: '1px solid', borderColor: 'divider' },
-        }}
+        sx={{ width: W, flexShrink: 0, '& .MuiDrawer-paper': { width: W } }}
       >
-        <Box sx={{ p: 2, pb: 1.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: 1 }}>SHORTS</Typography>
-          <Typography variant="caption" color="text.secondary">YT Automation</Typography>
+        <Box sx={{ p: '20px 16px 16px', borderBottom: '1px solid', borderColor: IZK.subtleBorder }}>
+          <Typography sx={{
+            fontSize: 11, fontWeight: 700, letterSpacing: '5px',
+            textTransform: 'uppercase', color: 'primary.main',
+            textShadow: '0 0 10px #ff6b3570', mb: 0.5,
+          }}>
+            Shorts
+          </Typography>
+          <Typography sx={{ fontSize: 9, letterSpacing: '2px', textTransform: 'uppercase', color: IZK.dim }}>
+            YT Automation
+          </Typography>
         </Box>
-        <Divider />
-        <List dense sx={{ pt: 1 }}>
-          {NAV.map(({ label, path, Icon }) => {
+
+        <List dense sx={{ pt: 1.5, flex: 1 }}>
+          {NAV.map(({ label, path }) => {
             const active = pathname === path
             return (
               <ListItemButton
@@ -49,22 +49,40 @@ export default function AppShell() {
                 sx={{
                   borderLeft: '2px solid',
                   borderColor: active ? 'primary.main' : 'transparent',
-                  '&.Mui-selected': { bgcolor: 'primary.main' + '15' },
+                  background: active ? 'linear-gradient(90deg, #ff6b3510, transparent)' : 'transparent',
+                  '&.Mui-selected': { bgcolor: 'transparent' },
+                  '&.Mui-selected:hover': { bgcolor: '#ff6b3508' },
+                  '&:hover': { bgcolor: '#ff6b3806' },
+                  py: 1.25, px: 2,
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 32, color: active ? 'text.primary' : 'text.secondary' }}>
-                  <Icon fontSize="small" />
-                </ListItemIcon>
+                <Box sx={{
+                  width: 6, height: 6, borderRadius: '50%', mr: 1.5, flexShrink: 0,
+                  bgcolor: active ? 'primary.main' : IZK.dim,
+                  boxShadow: active ? '0 0 6px #ff6b35' : 'none',
+                  transition: 'all 0.15s',
+                }} />
                 <ListItemText
                   primary={label}
-                  primaryTypographyProps={{ fontSize: 13, color: active ? 'text.primary' : 'text.secondary' }}
+                  primaryTypographyProps={{
+                    fontSize: 12,
+                    letterSpacing: '0.5px',
+                    color: active ? 'text.primary' : IZK.muted,
+                  }}
                 />
               </ListItemButton>
             )
           })}
         </List>
+
+        <Box sx={{ p: '12px 16px', borderTop: '1px solid', borderColor: IZK.subtleBorder }}>
+          <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '1px' }}>
+            EST · UTC−5
+          </Typography>
+        </Box>
       </Drawer>
-      <Box component="main" sx={{ flex: 1, p: 3, overflow: 'auto' }}>
+
+      <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default' }}>
         <Outlet />
       </Box>
     </Box>
