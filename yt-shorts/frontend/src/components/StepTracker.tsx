@@ -1,8 +1,6 @@
 import Box from '@mui/material/Box'
-import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import CircularProgress from '@mui/material/CircularProgress'
-import CheckIcon from '@mui/icons-material/Check'
+import { IZK } from '../theme'
 
 const STEPS = [
   { key: 'generate_script', label: 'Generate Script' },
@@ -23,26 +21,60 @@ export default function StepTracker({ completedSteps, isRunning }: { completedSt
         const isDone = done.has(step.key)
         const isActive = isRunning && i === nextIdx
         return (
-          <Paper key={step.key} variant="outlined" sx={{
-            display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25, mb: 0.5,
-            borderColor: isActive ? 'primary.main' : 'divider',
-          }}>
+          <Box
+            key={step.key}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              p: '10px 12px',
+              mb: 0.5,
+              bgcolor: isActive ? '#ff6b3508' : IZK.card,
+              border: '1px solid',
+              borderColor: isActive ? '#ff6b3540' : IZK.subtleBorder,
+              borderLeft: '2px solid',
+              borderLeftColor: isDone ? '#2d6a4f60' : isActive ? 'primary.main' : 'transparent',
+              transition: 'all 0.15s',
+            }}
+          >
             <Box sx={{
-              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '1.5px solid',
-              borderColor: isDone ? 'success.main' : isActive ? 'primary.main' : 'divider',
-              bgcolor: isDone ? 'success.main' + '20' : isActive ? 'primary.main' + '20' : 'transparent',
+              width: 24,
+              height: 24,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid',
+              borderColor: isDone ? '#2d6a4f60' : isActive ? 'primary.main' : '#2a2040',
+              bgcolor: isDone ? '#2d6a4f10' : isActive ? '#ff6b3510' : 'transparent',
+              boxShadow: isActive ? '0 0 8px #ff6b3540' : 'none',
+              color: isDone ? '#2d6a4f' : isActive ? 'primary.main' : IZK.dim,
+              fontSize: 10,
+              fontWeight: 700,
             }}>
-              {isDone ? <CheckIcon sx={{ fontSize: 12, color: 'success.main' }} />
-                : isActive ? <CircularProgress size={10} thickness={5} />
-                : <Typography variant="caption" color="text.disabled">{i + 1}</Typography>}
+              {isDone ? '✓' : i + 1}
             </Box>
-            <Typography variant="body2" color={isDone ? 'text.secondary' : isActive ? 'text.primary' : 'text.disabled'}
-              fontWeight={isActive ? 600 : 400}>
+            <Typography sx={{
+              fontSize: 12,
+              color: isDone ? 'text.secondary' : isActive ? 'text.primary' : IZK.dim,
+              fontWeight: isActive ? 600 : 400,
+              flex: 1,
+            }}>
               {step.label}
             </Typography>
-          </Paper>
+            {isActive && (
+              <Box sx={{
+                fontSize: 8,
+                letterSpacing: '1.5px',
+                color: 'primary.main',
+                textTransform: 'uppercase',
+                animation: 'pulse 1.5s ease-in-out infinite',
+                '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.4 } },
+              }}>
+                Running
+              </Box>
+            )}
+          </Box>
         )
       })}
     </Box>

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import Box from '@mui/material/Box'
-import Paper from '@mui/material/Paper'
-import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
 import StatusBadge from './StatusBadge'
 import type { Topic } from '../types'
+import { IZK } from '../theme'
 
 interface Props {
   topic: Topic
@@ -23,32 +23,81 @@ export default function TopicCard({ topic, onApprove, onReject }: Props) {
     finally { setBusy(null) }
   }
 
+  const isFeatured = topic.tier === 1
+
   return (
-    <Paper variant="outlined" sx={{ p: 2, mb: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+    <Box sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+      p: '14px 16px',
+      mb: 0.75,
+      bgcolor: isFeatured ? '#160d1e' : IZK.card,
+      border: '1px solid',
+      borderColor: isFeatured ? '#2a2040' : IZK.subtleBorder,
+      borderLeft: '2px solid',
+      borderLeftColor: isFeatured ? 'primary.main' : 'transparent',
+      boxShadow: isFeatured ? '0 0 20px #ff6b3510, inset 0 0 20px #ff6b3505' : 'none',
+    }}>
       <Box sx={{
-        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-        border: '2px solid', borderColor: topic.tier === 1 ? 'success.main' : 'warning.main',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 32,
+        height: 32,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1px solid',
+        borderColor: isFeatured ? '#ff6b3550' : '#2a2040',
+        color: isFeatured ? 'primary.main' : IZK.dim,
+        fontSize: 11,
+        fontWeight: 700,
+        textShadow: isFeatured ? '0 0 8px #ff6b35' : 'none',
       }}>
-        <Typography variant="subtitle2" color={topic.tier === 1 ? 'success.main' : 'warning.main'}>
-          {topic.tier_score ?? topic.tier}
-        </Typography>
+        {topic.tier_score ?? topic.tier}
       </Box>
+
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} noWrap>{topic.title}</Typography>
-        <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
+        <Typography sx={{
+          fontSize: 12,
+          color: isFeatured ? 'text.primary' : IZK.muted,
+          fontWeight: isFeatured ? 500 : 400,
+          mb: 0.5,
+          lineHeight: 1.4,
+        }} noWrap>
+          {topic.title}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <StatusBadge tier={topic.tier} score={topic.tier_score} />
           {topic.hook_object && (
-            <Typography variant="caption" color="text.secondary">Hook: {topic.hook_object}</Typography>
+            <Typography sx={{ fontSize: 9, color: IZK.dim, letterSpacing: '0.5px' }}>
+              Hook: {topic.hook_object}
+            </Typography>
           )}
         </Box>
       </Box>
+
       <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-        <Button size="small" variant="outlined" color="success" startIcon={<CheckIcon />}
-          disabled={busy !== null} onClick={handle('approve')}>Approve</Button>
-        <Button size="small" variant="outlined" color="error" startIcon={<CloseIcon />}
-          disabled={busy !== null} onClick={handle('reject')}>Reject</Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<CheckIcon sx={{ fontSize: '12px !important' }} />}
+          disabled={busy !== null}
+          onClick={handle('approve')}
+          sx={{ borderColor: '#2d6a4f', color: '#2d6a4f', '&:hover': { bgcolor: '#2d6a4f10', borderColor: '#2d6a4f' } }}
+        >
+          Approve
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<CloseIcon sx={{ fontSize: '12px !important' }} />}
+          disabled={busy !== null}
+          onClick={handle('reject')}
+          sx={{ borderColor: '#c0392b60', color: '#c0392b80', '&:hover': { bgcolor: '#c0392b08', borderColor: '#c0392b' } }}
+        >
+          Reject
+        </Button>
       </Box>
-    </Paper>
+    </Box>
   )
 }
