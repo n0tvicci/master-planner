@@ -6,6 +6,7 @@ import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
 import { IZK } from '../theme'
+import GeometricBackground from '../components/GeometricBackground'
 
 const W = 200
 const NAV = [
@@ -86,8 +87,11 @@ export default function AppShell() {
         </Box>
       </Drawer>
 
-      <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default' }}>
-        <Outlet />
+      <Box component="main" sx={{ flex: 1, position: 'relative', overflow: 'hidden', bgcolor: 'background.default' }}>
+        <GeometricBackground />
+        <Box sx={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   )
