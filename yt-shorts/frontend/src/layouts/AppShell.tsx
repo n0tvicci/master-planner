@@ -64,10 +64,14 @@ export default function AppShell() {
                 }} />
                 <ListItemText
                   primary={label}
-                  primaryTypographyProps={{
-                    fontSize: 12,
-                    letterSpacing: '0.5px',
-                    color: active ? 'text.primary' : IZK.muted,
+                  slotProps={{
+                    primary: {
+                      sx: {
+                        fontSize: 12,
+                        letterSpacing: '0.5px',
+                        color: active ? 'text.primary' : IZK.muted,
+                      },
+                    },
                   }}
                 />
               </ListItemButton>
